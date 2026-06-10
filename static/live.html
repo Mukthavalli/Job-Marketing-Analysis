@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DataVista Live | Real-Time Job Market</title>
+    <meta name="description" content="Live job market data from RemoteOK and Remotive — real-time job counts, skills in demand, salary ranges and hiring trends.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: { colors: {
+                darkbg: '#0d1117', darkcard: '#161b22', lightbg: '#f0f4f8',
+                live: { green: '#22c55e', teal: '#14b8a6', blue: '#3b82f6',
+                        purple: '#a855f7', orange: '#f97316', yellow: '#eab308',
+                        pink: '#ec4899', red: '#ef4444', cyan: '#06b6d4', indigo: '#6366f1' }
+            }}}
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; overflow-x: hidden; }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        .dark ::-webkit-scrollbar-track { background: #0d1117; }
+        .dark ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+
+        .glass { backdrop-filter: blur(14px); transition: all .3s; }
+        .dark .glass {
+            background: rgba(22,27,34,.88);
+            border: 1px solid rgba(255,255,255,.07);
+            box-shadow: 0 4px 28px rgba(0,0,0,.35);
+        }
+        .glass {
+            background: rgba(255,255,255,.96);
+            border: 1px solid rgba(0,0,0,.07);
+            box-shadow: 0 4px 18px rgba(0,0,0,.07);
+        }
+
+        .live-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 3px 10px; border-radius: 20px; font-size: .72rem; font-weight: 700;
+            background: rgba(34,197,94,.12); border: 1px solid rgba(34,197,94,.25); color: #22c55e;
+        }
+        .dark .live-badge { background: rgba(34,197,94,.15); }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50%       { opacity: .35; }
+        }
+        .pulse-dot {
+            width: 7px; height: 7px; border-radius: 50%;
+            background: #22c55e; animation: pulse-dot 1.5s ease-in-out infinite;
+        }
+
+        .src-badge {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 2px 8px; border-radius: 12px; font-size: .68rem; font-weight: 700;
+        }
+        .src-remoteok { background: rgba(59,130,246,.12); color: #60a5fa; border: 1px solid rgba(59,130,246,.2); }
+        .src-remotive { background: rgba(168,85,247,.12); color: #c084fc; border: 1px solid rgba(168,85,247,.2); }
+
+        .stat-card { transition: transform .25s, box-shadow .25s; }
+        .stat-card:hover { transform: translateY(-3px); }
+
+        .insight-box {
+            margin-top: 12px; padding: 11px 14px; border-radius: 10px;
+            font-size: .84rem; line-height: 1.65;
+        }
+        .dark .insight-box { background: rgba(34,197,94,.08); border: 1px solid rgba(34,197,94,.2); color: #d1fae5; }
+        .insight-box { background: rgba(34,197,94,.06); border: 1px solid rgba(34,197,94,.15); color: #14532d; }
+
+        .insight-avatar {
+            width: 24px; height: 24px; min-width: 24px; border-radius: 50%;
+            background: linear-gradient(135deg,#22c55e,#14b8a6);
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .fadein { animation: fadeUp .45s ease forwards; }
+
+        .skill-tag {
+            display: inline-flex; align-items: center; gap: 3px;
+            padding: 2px 8px; border-radius: 12px; font-size: .69rem; font-weight: 600;
+            background: rgba(6,182,212,.1); border: 1px solid rgba(6,182,212,.2); color: #06b6d4;
+            cursor: pointer; transition: all .2s;
+        }
+        .skill-tag:hover { background: rgba(6,182,212,.2); }
+        .skill-tag.active { background: #06b6d4; color: #fff; }
+    </style>
+</head>
+
+<body class="flex h-screen overflow-hidden bg-lightbg dark:bg-darkbg text-slate-800 dark:text-slate-100">
+
+<!-- ══════════ SIDEBAR ══════════ -->
+<aside class="w-64 glass border-r border-slate-200 dark:border-slate-800 hidden md:flex flex-col z-20 flex-shrink-0">
+    <div class="p-6">
+        <div class="flex items-center gap-2 mb-1">
+            <i class="fa-solid fa-binoculars" style="color:#a855f7"></i>
+            <span class="text-[1.35rem] font-black" style="background:linear-gradient(135deg,#a855f7,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent">DataVista</span>
+        </div>
+        <div class="live-badge mt-2">
+            <span class="pulse-dot"></span>
+            LIVE DATA
+        </div>
+        <p class="text-xs text-slate-400 mt-2 font-medium leading-relaxed">Real-time jobs from RemoteOK &amp; Remotive APIs · Refreshed hourly</p>
+    </div>
+
+    <nav class="flex-1 px-4 space-y-1.5">
+        <a href="/"
+            class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/40 text-slate-500 dark:text-slate-400 transition-all text-left font-semibold text-sm">
+            <i class="fa-solid fa-chart-pie w-4"></i> Static Dashboard
+        </a>
+        <div class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg bg-slate-100 dark:bg-slate-800/60 font-semibold text-sm"
+             style="color:#22c55e; border: 1px solid rgba(34,197,94,.25)">
+            <i class="fa-solid fa-satellite-dish w-4"></i> Live Market
+        </div>
+    </nav>
+
+    <div class="p-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
+        <div id="last-updated" class="text-xs text-slate-500 dark:text-slate-400 font-medium">
+            <i class="fa-solid fa-clock mr-1"></i> Last updated: loading…
+        </div>
+        <button onclick="doRefresh()" id="refresh-btn"
+            class="w-full flex items-center justify-center gap-2 text-xs font-bold py-2 rounded-lg transition-all"
+            style="background:rgba(34,197,94,.12); color:#22c55e; border:1px solid rgba(34,197,94,.25)">
+            <i class="fa-solid fa-arrows-rotate"></i> Force Refresh
+        </button>
+        <button onclick="toggleTheme()" class="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm font-semibold">
+            <span>Theme</span>
+            <i id="theme-icon" class="fa-solid fa-moon text-yellow-400"></i>
+        </button>
+        <div class="text-[10px] text-slate-500 text-center">
+            Data from <b>RemoteOK</b> &amp; <b>Remotive</b><br>
+            Free public APIs · No auth required
+        </div>
+    </div>
+</aside>
+
+<!-- ══════════ MAIN ══════════ -->
+<main class="flex-1 flex flex-col h-screen overflow-hidden">
+
+    <!-- Header -->
+    <header class="h-[66px] glass border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-5 z-10 flex-shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="live-badge"><span class="pulse-dot"></span>LIVE</div>
+            <span class="font-bold text-sm hidden sm:block">Real-Time Global Job Market</span>
+        </div>
+        <div class="flex items-center gap-3">
+            <div class="flex gap-2">
+                <span class="src-badge src-remoteok"><i class="fa-solid fa-circle-dot"></i> RemoteOK</span>
+                <span class="src-badge src-remotive"><i class="fa-solid fa-circle-dot"></i> Remotive</span>
+            </div>
+            <a href="/" class="flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-lg transition-all hover:opacity-80"
+               style="background:rgba(168,85,247,.12); color:#a855f7; border:1px solid rgba(168,85,247,.25)">
+                <i class="fa-solid fa-arrow-left"></i> Static Dashboard
+            </a>
+        </div>
+    </header>
+
+    <!-- Content -->
+    <div class="flex-1 overflow-y-auto p-4 md:p-6" id="content">
+
+        <!-- Loader -->
+        <div id="loader" class="flex flex-col items-center justify-center py-24 fadein">
+            <div class="relative mb-4">
+                <div class="w-16 h-16 rounded-full border-4 border-slate-200 dark:border-slate-800"></div>
+                <div class="w-16 h-16 rounded-full border-4 border-t-live-green animate-spin absolute inset-0" style="border-top-color:#22c55e"></div>
+            </div>
+            <p class="text-sm font-bold text-slate-400 mb-1">Fetching live data…</p>
+            <p class="text-xs text-slate-500">Connecting to RemoteOK &amp; Remotive APIs. This may take 10–20 seconds.</p>
+        </div>
+
+        <!-- Dashboard (hidden until data loads) -->
+        <div id="dashboard" class="hidden fadein space-y-5">
+
+            <!-- Error Banner -->
+            <div id="error-banner" class="hidden p-4 rounded-xl text-sm font-semibold"
+                 style="background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.25); color:#fca5a5">
+                <i class="fa-solid fa-triangle-exclamation mr-2"></i>
+                <span id="error-msg">Failed to fetch live data.</span>
+            </div>
+
+            <!-- KPI Cards -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="glass rounded-xl p-5 stat-card border-l-4" style="border-left-color:#22c55e">
+                    <div class="text-[11px] font-bold uppercase tracking-wider mb-1 text-slate-500 dark:text-slate-400">Live Jobs Found</div>
+                    <div class="text-3xl font-black" style="color:#22c55e" id="kpi-total">--</div>
+                    <div class="text-xs text-slate-400 mt-0.5">from 2 sources</div>
+                </div>
+                <div class="glass rounded-xl p-5 stat-card border-l-4" style="border-left-color:#14b8a6">
+                    <div class="text-[11px] font-bold uppercase tracking-wider mb-1 text-slate-500 dark:text-slate-400">With Salary Data</div>
+                    <div class="text-3xl font-black" style="color:#14b8a6" id="kpi-salary-count">--</div>
+                    <div class="text-xs text-slate-400 mt-0.5" id="kpi-salary-pct">-- % have salary info</div>
+                </div>
+                <div class="glass rounded-xl p-5 stat-card border-l-4" style="border-left-color:#f97316">
+                    <div class="text-[11px] font-bold uppercase tracking-wider mb-1 text-slate-500 dark:text-slate-400">Avg Live Salary</div>
+                    <div class="flex items-end gap-2">
+                        <div class="text-2xl font-black" style="color:#f97316" id="kpi-avg">--</div>
+                    </div>
+                    <div class="text-xs text-slate-400 mt-0.5" title="Many live jobs hide salaries. This average is calculated only from jobs that openly publish them.">
+                        USD <i class="fa-solid fa-circle-info text-[10px] ml-0.5"></i> (jobs with salary)
+                    </div>
+                </div>
+                <div class="glass rounded-xl p-5 stat-card border-l-4" style="border-left-color:#a855f7">
+                    <div class="text-[11px] font-bold uppercase tracking-wider mb-1 text-slate-500 dark:text-slate-400">Top Category Now</div>
+                    <div class="text-base font-black leading-tight" style="color:#a855f7" id="kpi-top-cat">--</div>
+                    <div class="text-xs text-slate-400 mt-0.5">most active sector</div>
+                </div>
+            </div>
+
+            <!-- Row 1: Category Distribution + Skills -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                <div class="glass rounded-xl p-5 border-t-4" style="border-top-color:#22c55e; box-shadow:0 4px 20px rgba(34,197,94,.08)">
+                    <h3 class="text-sm font-bold mb-3 flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#22c55e"></span>
+                        Job Category Distribution (Live)
+                    </h3>
+                    <div class="h-[280px]"><canvas id="chart-cats"></canvas></div>
+                    <div class="insight-box mt-3"><div class="flex gap-2 items-start">
+                        <div class="insight-avatar"><i class="fa-solid fa-robot text-white text-[11px]"></i></div>
+                        <div class="flex-1">
+                            <div class="text-[10px] font-bold text-accent-purple uppercase tracking-wider mb-0.5">Data Analyst</div>
+                            <span id="insight-cats">Loading insights…</span>
+                        </div>
+                    </div></div>
+                </div>
+                <div class="glass rounded-xl p-5 border-t-4" style="border-top-color:#06b6d4; box-shadow:0 4px 20px rgba(6,182,212,.08)">
+                    <h3 class="text-sm font-bold mb-3 flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#06b6d4"></span>
+                        Top Skills Companies Need Right Now
+                    </h3>
+                    <div class="h-[280px]"><canvas id="chart-skills"></canvas></div>
+                    <div class="insight-box mt-3"><div class="flex gap-2 items-start">
+                        <div class="insight-avatar"><i class="fa-solid fa-robot text-white text-[11px]"></i></div>
+                        <div class="flex-1">
+                            <div class="text-[10px] font-bold text-accent-purple uppercase tracking-wider mb-0.5">Data Analyst</div>
+                            <span id="insight-skills">Loading insights…</span>
+                        </div>
+                    </div></div>
+                </div>
+            </div>
+
+            <!-- Row 2: Salary by Category + Top Companies -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                <div class="glass rounded-xl p-5 border-t-4" style="border-top-color:#f97316; box-shadow:0 4px 20px rgba(249,115,22,.07)">
+                    <h3 class="text-sm font-bold mb-3 flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#f97316"></span>
+                        Live Avg Salary by Category
+                        <span class="text-xs text-slate-400 font-normal">(jobs with salary data only)</span>
+                    </h3>
+                    <div class="h-[250px]"><canvas id="chart-cat-sal"></canvas></div>
+                    <div class="insight-box mt-3"><div class="flex gap-2 items-start">
+                        <div class="insight-avatar"><i class="fa-solid fa-robot text-white text-[11px]"></i></div>
+                        <div class="flex-1">
+                            <div class="text-[10px] font-bold text-accent-purple uppercase tracking-wider mb-0.5">Data Analyst</div>
+                            <span id="insight-sal">Loading insights…</span>
+                        </div>
+                    </div></div>
+                </div>
+                <div class="glass rounded-xl p-5 border-t-4" style="border-top-color:#a855f7; box-shadow:0 4px 20px rgba(168,85,247,.07)">
+                    <h3 class="text-sm font-bold mb-3 flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full inline-block" style="background:#a855f7"></span>
+                        Top Hiring Companies Right Now
+                    </h3>
+                    <div class="h-[250px]"><canvas id="chart-companies"></canvas></div>
+                    <div class="insight-box mt-3"><div class="flex gap-2 items-start">
+                        <div class="insight-avatar"><i class="fa-solid fa-robot text-white text-[11px]"></i></div>
+                        <div class="flex-1">
+                            <div class="text-[10px] font-bold text-accent-purple uppercase tracking-wider mb-0.5">Data Analyst</div>
+                            <span id="insight-cos">Loading insights…</span>
+                        </div>
+                    </div></div>
+                </div>
+            </div>
+
+            <!-- Live Jobs Table -->
+            <div class="glass rounded-xl p-5 pb-4 border-t-4" style="border-top-color:#14b8a6; box-shadow:0 4px 20px rgba(20,184,166,.07)">
+                <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                    <div class="flex items-center gap-3">
+                        <h2 class="text-base font-bold">Live Job Listings</h2>
+                        <span id="table-count" class="text-xs text-slate-400 bg-slate-200 dark:bg-slate-800 px-2.5 py-0.5 rounded-full font-semibold">-- jobs</span>
+                    </div>
+                    <div class="flex flex-wrap gap-2 items-center">
+                        <select id="filter-cat" onchange="filterTable()"
+                            class="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none">
+                            <option value="All">All Categories</option>
+                        </select>
+                        <select id="filter-src" onchange="filterTable()"
+                            class="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none">
+                            <option value="All">All Sources</option>
+                            <option value="RemoteOK">RemoteOK</option>
+                            <option value="Remotive">Remotive</option>
+                        </select>
+                        <select id="filter-salary" onchange="filterTable()"
+                            class="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none">
+                            <option value="All">All Salaries</option>
+                            <option value="with">With Salary Only</option>
+                        </select>
+                        <input id="filter-search" type="text" placeholder="Search title / company…"
+                            oninput="filterTable()"
+                            class="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs rounded-lg px-2.5 py-1.5 focus:outline-none w-40">
+                    </div>
+                </div>
+
+                <!-- Skill Tag Filter -->
+                <div id="skill-tags" class="flex flex-wrap gap-1.5 mb-3"></div>
+
+                <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700/50">
+                    <table class="w-full text-left text-xs whitespace-nowrap">
+                        <thead class="bg-slate-100 dark:bg-slate-800/80">
+                            <tr>
+                                <th class="px-3 py-3 font-bold">Job Title</th>
+                                <th class="px-3 py-3 font-bold">Company</th>
+                                <th class="px-3 py-3 font-bold">Category</th>
+                                <th class="px-3 py-3 font-bold">Salary (USD)</th>
+                                <th class="px-3 py-3 font-bold">Salary (INR ~)</th>
+                                <th class="px-3 py-3 font-bold">Location</th>
+                                <th class="px-3 py-3 font-bold">Date</th>
+                                <th class="px-3 py-3 font-bold">Source</th>
+                                <th class="px-3 py-3 font-bold">Apply</th>
+                            </tr>
+                        </thead>
+                        <tbody id="live-table" class="divide-y divide-slate-200 dark:divide-slate-700/50">
+                            <tr><td colspan="9" class="text-center py-10 text-slate-400">Loading live jobs…</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+// ═══════════════════════════════════════════
+Chart.register(ChartDataLabels);
+Chart.defaults.set('plugins.datalabels', { display: false });
+
+let allJobs = [];
+let activeSkill = null;
+const INR = 83.5;
+
+const COLORS = [
+    '#22c55e','#14b8a6','#f97316','#3b82f6','#a855f7',
+    '#ec4899','#eab308','#06b6d4','#6366f1','#ef4444',
+    '#84cc16','#f43f5e','#8b5cf6','#0ea5e9','#4ade80'
+];
+
+const CAT_COLORS = {
+    'Data / ML / AI':       '#a855f7',
+    'Software Engineering': '#3b82f6',
+    'DevOps / Cloud / SRE': '#14b8a6',
+    'Product / Project':    '#f97316',
+    'Design / UX':          '#ec4899',
+    'Marketing / Growth':   '#eab308',
+    'Finance / Accounting': '#10b981',
+    'Sales / CRM':          '#06b6d4',
+    'HR / Recruiting':      '#6366f1',
+    'Customer / Support':   '#f43f5e',
+    'Other':                '#64748b',
+};
+
+let charts = {};
+
+function fc(v, short = false) {
+    if (!v) return '—';
+    if (short) {
+        if (v >= 1000000) return '$' + (v/1000000).toFixed(1) + 'M';
+        if (v >= 1000)    return '$' + Math.round(v/1000) + 'k';
+    }
+    return '$' + Number(v).toLocaleString();
+}
+
+function toggleTheme() {
+    const dark = !document.documentElement.classList.contains('dark');
+    document.documentElement.classList.toggle('dark', dark);
+    document.getElementById('theme-icon').className = dark
+        ? 'fa-solid fa-moon text-yellow-400'
+        : 'fa-solid fa-sun text-orange-500';
+    Chart.defaults.color = dark ? '#94a3b8' : '#475569';
+}
+
+function setInsight(id, html) {
+    const el = document.getElementById('insight-' + id);
+    if (el) el.innerHTML = html;
+}
+
+function mkBar(id, labels, values, colors, opts = {}) {
+    const canvas = document.getElementById(id);
+    if (!canvas) return;
+    if (charts[id]) charts[id].destroy();
+    const dark = document.documentElement.classList.contains('dark');
+    charts[id] = new Chart(canvas.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                data: values,
+                backgroundColor: colors,
+                borderColor: colors.map(c => c + 'bb'),
+                borderWidth: 0,
+                borderRadius: 5,
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            indexAxis: opts.horizontal ? 'y' : 'x',
+            plugins: {
+                legend: { display: false },
+                datalabels: {
+                    display: true,
+                    color: dark ? '#cbd5e1' : '#334155',
+                    font: { weight: '600', size: 10 },
+                    anchor: opts.horizontal ? 'end' : 'end',
+                    align: opts.horizontal ? 'right' : 'top',
+                    offset: opts.horizontal ? 4 : 2,
+                    clamp: true,
+                    formatter: opts.isCurr
+                        ? v => fc(v, true)
+                        : v => Number(v).toLocaleString(),
+                }
+            },
+            scales: {
+                x: { grid: { display: !opts.horizontal }, ticks: { maxRotation: opts.horizontal ? 0 : 20, font: { size: 10 } } },
+                y: { grid: { display: opts.horizontal }, ticks: { font: { size: 10 } }, ...(opts.isCurr ? { ticks: { callback: v => fc(v, true), font: { size: 10 } } } : {}) }
+            }
+        }
+    });
+}
+
+// ═══════════════════════════════════════════
+//  LOAD LIVE DATA
+// ═══════════════════════════════════════════
+async function loadLive() {
+    try {
+        // Fetch stats and jobs in parallel
+        const [sRes, jRes] = await Promise.all([
+            fetch('/api/live/stats'),
+            fetch('/api/live/jobs')
+        ]);
+        const stats = await sRes.json();
+        const jobsData = await jRes.json();
+
+        if (stats.error) throw new Error(stats.error);
+
+        allJobs = jobsData.jobs || [];
+
+        document.getElementById('loader').classList.add('hidden');
+        document.getElementById('dashboard').classList.remove('hidden');
+
+        // Update last updated
+        document.getElementById('last-updated').innerHTML =
+            `<i class="fa-solid fa-clock mr-1"></i> Updated: <b>${stats.last_updated}</b>`;
+
+        // KPIs
+        document.getElementById('kpi-total').textContent = stats.total_jobs.toLocaleString();
+        document.getElementById('kpi-salary-count').textContent = stats.with_salary.toLocaleString();
+        const pct = stats.total_jobs > 0 ? Math.round(stats.with_salary/stats.total_jobs*100) : 0;
+        document.getElementById('kpi-salary-pct').textContent = `${pct}% have salary info`;
+        document.getElementById('kpi-avg').textContent = stats.avg_salary ? fc(stats.avg_salary) : 'N/A';
+        document.getElementById('kpi-top-cat').textContent = stats.top_category || 'N/A';
+
+        // Charts
+        renderCats(stats.top_categories);
+        renderSkills(stats.top_skills);
+        renderCatSal(stats.cat_salaries);
+        renderCompanies(stats.top_companies);
+
+        // Table category filter
+        const catSel = document.getElementById('filter-cat');
+        stats.top_categories.forEach(c => {
+            catSel.innerHTML += `<option value="${c.label}">${c.label} (${c.count})</option>`;
+        });
+
+        // Skill tags
+        renderSkillTags(stats.top_skills.slice(0, 12));
+
+        // Table
+        renderTable(allJobs);
+
+    } catch (err) {
+        document.getElementById('loader').classList.add('hidden');
+        document.getElementById('dashboard').classList.remove('hidden');
+        const eb = document.getElementById('error-banner');
+        eb.classList.remove('hidden');
+        document.getElementById('error-msg').textContent =
+            `Error: ${err.message}. The live APIs may be rate-limited or unavailable. Try refreshing in a moment.`;
+        console.error(err);
+    }
+}
+
+function renderCats(cats) {
+    if (!cats || !cats.length) return;
+    const labels = cats.map(c => c.label);
+    const values = cats.map(c => c.count);
+    const colors = labels.map(l => CAT_COLORS[l] || '#64748b');
+    mkBar('chart-cats', labels, values, colors, { horizontal: true });
+
+    const top = cats[0];
+    const total = values.reduce((a,b)=>a+b,0);
+    const pct = Math.round(top.count/total*100);
+    setInsight('cats',
+        `<b style="color:#22c55e">${top.label}</b> dominates live postings with ` +
+        `<b>${top.count.toLocaleString()}</b> jobs (${pct}% of all live listings). ` +
+        `<i>Note: "Other" includes highly specialized or unmapped roles (e.g., Legal Counsel, VP of Operations).</i>`
+    );
+}
+
+function renderSkills(skills) {
+    if (!skills || !skills.length) return;
+    const labels = skills.map(s => s.label);
+    const values = skills.map(s => s.count);
+    mkBar('chart-skills', labels, values, COLORS.slice(0, labels.length), { horizontal: true });
+
+    setInsight('skills',
+        `<b style="color:#06b6d4">${labels[0]}</b> is the #1 most mentioned skill right now ` +
+        `(${values[0]} jobs). Skills like <b>${labels.slice(0,3).join(', ')}</b> consistently appear ` +
+        `across job listings — learning these maximises your live market fit.`
+    );
+}
+
+function renderCatSal(catSals) {
+    if (!catSals || !catSals.length) return;
+    const labels = catSals.map(c => c.label);
+    const values = catSals.map(c => c.salary);
+    const colors = labels.map(l => CAT_COLORS[l] || '#64748b');
+    mkBar('chart-cat-sal', labels, values, colors, { horizontal: true, isCurr: true });
+
+    const top = catSals[0];
+    setInsight('sal',
+        `Live data shows <b style="color:#f97316">${top.label}</b> commands the highest avg salary ` +
+        `at <b>${fc(top.salary)}</b>. Note: only jobs that openly list salaries are included here — ` +
+        `actual market rates may be higher. INR equivalent: ~₹${Math.round(top.salary * INR).toLocaleString('en-IN')}`
+    );
+}
+
+function renderCompanies(cos) {
+    if (!cos || !cos.length) return;
+    const labels = cos.map(c => c.label);
+    const values = cos.map(c => c.count);
+    mkBar('chart-companies', labels, values, COLORS.slice(0, labels.length).reverse(), { horizontal: true });
+
+    setInsight('cos',
+        `<b style="color:#a855f7">${labels[0]}</b> is the most active hiring company right now ` +
+        `with <b>${values[0]}</b> open listings. ` +
+        `These companies are aggressively scaling — great targets for direct applications today.`
+    );
+}
+
+function renderSkillTags(skills) {
+    const container = document.getElementById('skill-tags');
+    container.innerHTML = '<span class="text-xs text-slate-400 font-bold mr-1 self-center">Filter by skill:</span>';
+    skills.forEach(s => {
+        const btn = document.createElement('button');
+        btn.className = 'skill-tag';
+        btn.textContent = s.label + ' (' + s.count + ')';
+        btn.dataset.skill = s.label;
+        btn.onclick = () => {
+            if (activeSkill === s.label) {
+                activeSkill = null;
+                btn.classList.remove('active');
+            } else {
+                document.querySelectorAll('.skill-tag').forEach(b => b.classList.remove('active'));
+                activeSkill = s.label;
+                btn.classList.add('active');
+            }
+            filterTable();
+        };
+        container.appendChild(btn);
+    });
+}
+
+function filterTable() {
+    const cat    = document.getElementById('filter-cat').value;
+    const src    = document.getElementById('filter-src').value;
+    const salF   = document.getElementById('filter-salary').value;
+    const search = document.getElementById('filter-search').value.toLowerCase();
+
+    let filtered = allJobs;
+    if (cat !== 'All')  filtered = filtered.filter(j => j.category === cat);
+    if (src !== 'All')  filtered = filtered.filter(j => j.source === src);
+    if (salF === 'with') filtered = filtered.filter(j => j.salary);
+    if (activeSkill)    filtered = filtered.filter(j => j.tags.includes(activeSkill.toLowerCase()));
+    if (search)         filtered = filtered.filter(j =>
+        j.title.toLowerCase().includes(search) || j.company.toLowerCase().includes(search)
+    );
+
+    document.getElementById('table-count').textContent = `${filtered.length.toLocaleString()} jobs`;
+    renderTable(filtered.slice(0, 200));
+}
+
+function renderTable(jobs) {
+    const tbody = document.getElementById('live-table');
+    if (!jobs.length) {
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center py-8 text-slate-400 font-semibold">
+            <i class="fa-solid fa-magnifying-glass mr-2 opacity-50"></i>No jobs match the current filters.</td></tr>`;
+        return;
+    }
+    document.getElementById('table-count').textContent = `${jobs.length.toLocaleString()} jobs`;
+    const catColors = {
+        'Data / ML / AI':'bg-purple-500/15 text-purple-600 dark:text-purple-300',
+        'Software Engineering':'bg-blue-500/15 text-blue-600 dark:text-blue-300',
+        'DevOps / Cloud / SRE':'bg-teal-500/15 text-teal-600 dark:text-teal-300',
+        'Product / Project':'bg-orange-500/15 text-orange-600 dark:text-orange-300',
+        'Design / UX':'bg-pink-500/15 text-pink-600 dark:text-pink-300',
+        'Marketing / Growth':'bg-yellow-500/15 text-yellow-600 dark:text-yellow-300',
+    };
+    tbody.innerHTML = jobs.slice(0, 300).map(j => {
+        const inr = j.salary ? '₹' + Math.round(j.salary * INR).toLocaleString('en-IN') : '—';
+        const catBadge = catColors[j.category] || 'bg-slate-200/80 dark:bg-slate-700 text-slate-500 dark:text-slate-400';
+        const srcBadge = j.source === 'RemoteOK' ? 'src-badge src-remoteok' : 'src-badge src-remotive';
+        const tagsHtml = j.tags.slice(0,4).map(t =>
+            `<span title="${t}" style="background:rgba(6,182,212,.1);border:1px solid rgba(6,182,212,.2);color:#06b6d4;border-radius:9px;padding:0 5px;font-size:.63rem;font-weight:600">${t}</span>`
+        ).join(' ');
+        return `
+        <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+            <td class="px-3 py-2.5">
+                <div class="font-bold text-xs">${j.title}</div>
+                <div class="text-slate-400 text-[10px] mt-0.5 flex gap-1 flex-wrap">${tagsHtml}</div>
+            </td>
+            <td class="px-3 py-2.5 font-semibold text-xs text-slate-600 dark:text-slate-300">${j.company || '—'}</td>
+            <td class="px-3 py-2.5"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${catBadge}">${j.category}</span></td>
+            <td class="px-3 py-2.5 font-bold text-xs text-teal-600 dark:text-teal-400">${j.salary ? fc(j.salary) : '—'}</td>
+            <td class="px-3 py-2.5 font-bold text-xs text-yellow-600 dark:text-yellow-400">${inr}</td>
+            <td class="px-3 py-2.5 text-xs text-slate-500 dark:text-slate-400">${j.location}</td>
+            <td class="px-3 py-2.5 text-xs text-slate-400">${j.date || '—'}</td>
+            <td class="px-3 py-2.5"><span class="${srcBadge}">${j.source}</span></td>
+            <td class="px-3 py-2.5">${j.url ? `<a href="${j.url}" target="_blank" rel="noopener"
+                class="text-[10px] font-bold px-2 py-1 rounded-lg hover:opacity-80 transition-opacity"
+                style="background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.2)">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i> Apply
+                </a>` : '—'}</td>
+        </tr>`;
+    }).join('');
+}
+
+async function doRefresh() {
+    const btn = document.getElementById('refresh-btn');
+    btn.innerHTML = '<i class="fa-solid fa-arrows-rotate fa-spin"></i> Refreshing…';
+    btn.disabled = true;
+    try {
+        await fetch('/api/live/refresh');
+        location.reload();
+    } catch(e) {
+        btn.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> Force Refresh';
+        btn.disabled = false;
+    }
+}
+
+// ═══════════════════════════════════════════
+//  STARTUP
+// ═══════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+    const dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.classList.toggle('dark', dark);
+    Chart.defaults.color = dark ? '#94a3b8' : '#475569';
+    Chart.defaults.borderColor = dark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.08)';
+    if (!dark) document.getElementById('theme-icon').className = 'fa-solid fa-sun text-orange-500';
+    loadLive();
+});
+</script>
+</body>
+</html>

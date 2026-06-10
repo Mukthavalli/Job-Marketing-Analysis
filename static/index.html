@@ -1,0 +1,1707 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DataVista | DS Job Market Intelligence</title>
+    <meta name="description" content="DataVista – Interactive data science job market analytics with salary insights, experience trends, currency conversion and career tools.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkbg:   '#0d1117',
+                        darkcard: '#161b22',
+                        lightbg:  '#f0f4f8',
+                        accent: {
+                            purple: '#a855f7', pink:   '#ec4899',
+                            teal:   '#14b8a6', orange: '#f97316',
+                            blue:   '#3b82f6', green:  '#10b981',
+                            yellow: '#eab308', red:    '#ef4444',
+                            indigo: '#6366f1', cyan:   '#06b6d4'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; overflow-x: hidden; transition: background-color .3s, color .3s; }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        .dark ::-webkit-scrollbar-track { background: #0d1117; }
+        .dark ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+        ::-webkit-scrollbar-track { background: #f0f4f8; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+        .glass-panel { backdrop-filter: blur(14px); transition: all .3s ease; }
+        .dark .glass-panel {
+            background: rgba(22,27,34,.88);
+            border: 1px solid rgba(255,255,255,.07);
+            box-shadow: 0 4px 28px rgba(0,0,0,.35);
+        }
+        .glass-panel {
+            background: rgba(255,255,255,.96);
+            border: 1px solid rgba(0,0,0,.07);
+            box-shadow: 0 4px 18px rgba(0,0,0,.07);
+        }
+
+        .stat-card { transition: transform .25s ease, box-shadow .25s ease; }
+        .stat-card:hover { transform: translateY(-4px); }
+        .dark .stat-card:hover { box-shadow: 0 14px 30px -5px rgba(168,85,247,.28); }
+        .stat-card:hover       { box-shadow: 0 14px 30px -5px rgba(168,85,247,.16); }
+
+        .text-gradient {
+            background: linear-gradient(135deg, #a855f7, #ec4899);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        /* AI Insight Box — Enlarged & Bright */
+        .insight-box {
+            margin-top: 14px; padding: 13px 16px; border-radius: 11px;
+            font-size: .87rem; line-height: 1.7; transition: all .3s;
+        }
+        .dark .insight-box {
+            background: rgba(168,85,247,.12); border: 1px solid rgba(168,85,247,.25);
+            color: #e2e8f0;
+        }
+        .insight-box {
+            background: rgba(168,85,247,.18); border: 1px solid rgba(168,85,247,.35);
+            color: #1e293b; font-weight: 500;
+        }
+        .insight-avatar {
+            width: 26px; height: 26px; min-width: 26px; border-radius: 50%;
+            background: linear-gradient(135deg,#a855f7,#ec4899);
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        /* Limit Buttons (Top Roles) */
+        .rl-btn {
+            padding: 4px 12px; border-radius: 20px; font-size: .71rem; font-weight: 700;
+            cursor: pointer; transition: all .2s; border: 1px solid transparent;
+        }
+        .dark .rl-btn { background: rgba(22,27,34,.9); color: #94a3b8; border-color: rgba(255,255,255,.08); }
+        .rl-btn        { background: #f0f4f8; color: #64748b; border-color: rgba(0,0,0,.08); }
+        .rl-btn.active { background: linear-gradient(135deg,#a855f7,#ec4899) !important; color: #fff !important; border-color: transparent !important; }
+
+        /* Chart Type Buttons */
+        .ct-btn {
+            padding: 3px 9px; border-radius: 6px; font-size: .67rem; font-weight: 700;
+            cursor: pointer; transition: all .2s; border: 1px solid transparent;
+        }
+        .dark .ct-btn { background: rgba(15,23,42,.7); color: #64748b; border-color: rgba(255,255,255,.07); }
+        .ct-btn        { background: #e2e8f0; color: #94a3b8; border-color: rgba(0,0,0,.06); }
+        .ct-btn.active {
+            background: rgba(168,85,247,.2) !important;
+            color: #c084fc !important;
+            border-color: rgba(168,85,247,.35) !important;
+        }
+
+        /* Currency Badge */
+        .curr-btn {
+            display: inline-flex; align-items: center; gap: 5px;
+            padding: 5px 12px; border-radius: 20px; font-size: .73rem; font-weight: 700;
+            cursor: pointer; transition: all .25s;
+        }
+        .curr-btn.usd {
+            background: rgba(16,185,129,.12); color: #10b981;
+            border: 1px solid rgba(16,185,129,.28);
+        }
+        .curr-btn.inr {
+            background: rgba(234,179,8,.12); color: #ca8a04;
+            border: 1px solid rgba(234,179,8,.28);
+        }
+        .dark .curr-btn.inr { color: #eab308; }
+
+        /* Dataset Note */
+        .ds-note {
+            padding: 7px 12px; border-radius: 8px; font-size: .74rem; font-weight: 500;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .dark .ds-note { background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.22); color: #93c5fd; }
+        .ds-note       { background: rgba(59,130,246,.07); border: 1px solid rgba(59,130,246,.16); color: #1d4ed8; }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .fadein { animation: fadeUp .4s ease forwards; }
+
+        select option { background: #1e293b; color: #e2e8f0; }
+    </style>
+</head>
+
+<body class="flex h-screen overflow-hidden bg-lightbg text-slate-800 dark:bg-darkbg dark:text-slate-100">
+
+<!-- ══════════════ SIDEBAR ══════════════ -->
+<aside class="w-64 glass-panel border-r border-slate-200 dark:border-slate-800 hidden md:flex flex-col z-20 flex-shrink-0">
+    <div class="p-6">
+        <h1 class="text-[1.45rem] font-black flex items-center gap-2">
+            <i class="fa-solid fa-binoculars text-accent-purple"></i>
+            <span class="text-gradient">DataVista</span>
+        </h1>
+        <p class="text-xs text-slate-400 mt-0.5 font-medium tracking-wide">DS Job Market Intelligence</p>
+    </div>
+    <nav class="flex-1 px-4 space-y-1.5">
+        <button onclick="switchTab('dashboard')" id="btn-dashboard"
+            class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg bg-slate-100 dark:bg-slate-800/60 text-accent-purple border border-accent-purple/30 transition-all text-left font-semibold text-sm">
+            <i class="fa-solid fa-chart-pie w-4"></i> Dashboard
+        </button>
+        <button onclick="switchTab('explorer')" id="btn-explorer"
+            class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/40 text-slate-500 dark:text-slate-400 transition-all text-left font-semibold text-sm">
+            <i class="fa-solid fa-table w-4"></i> Data Explorer
+        </button>
+        <button onclick="switchTab('calculator')" id="btn-calculator"
+            class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/40 text-slate-500 dark:text-slate-400 transition-all text-left font-semibold text-sm">
+            <i class="fa-solid fa-calculator w-4"></i> Salary Calculator
+        </button>
+        <button onclick="openUploadModal()"
+            class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/40 text-slate-500 dark:text-slate-400 transition-all text-left font-semibold text-sm">
+            <i class="fa-solid fa-file-upload w-4 text-accent-pink"></i> Custom Dataset
+        </button>
+        <a href="/live"
+            class="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all text-left font-semibold text-sm"
+            style="color:#22c55e; background:rgba(34,197,94,.08); border:1px solid rgba(34,197,94,.18);">
+            <span style="width:7px;height:7px;border-radius:50%;background:#22c55e;animation:livepulse 1.5s ease-in-out infinite;flex-shrink:0;display:inline-block"></span>
+            Live Market
+        </a>
+    </nav>
+    <style>@keyframes livepulse{0%,100%{opacity:1}50%{opacity:.3}}</style>
+    <div class="p-4 space-y-3 border-t border-slate-200 dark:border-slate-800">
+        <div class="flex justify-between items-center">
+            <span class="text-sm font-semibold">Theme</span>
+            <button onclick="toggleTheme()" class="p-2 rounded-lg bg-slate-200 dark:bg-slate-700 hover:opacity-80 transition-opacity">
+                <i id="theme-icon" class="fa-solid fa-moon text-yellow-400"></i>
+            </button>
+        </div>
+        <div class="ds-note">
+            <i class="fa-solid fa-circle-info flex-shrink-0"></i>
+            <span>Dataset covers DS / ML / Analytics roles · 2020–2023 only</span>
+        </div>
+    </div>
+</aside>
+
+<!-- ══════════════ MAIN ══════════════ -->
+<main class="flex-1 flex flex-col h-screen overflow-hidden">
+
+    <!-- Header -->
+    <header class="h-[66px] glass-panel border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-5 z-10 flex-shrink-0">
+        <div class="md:hidden font-black text-gradient text-lg">DataVista</div>
+        <div class="hidden md:flex items-center gap-2 text-slate-500 dark:text-slate-300 text-sm font-semibold">
+            <i class="fa-solid fa-filter text-accent-teal"></i> Global Filters
+        </div>
+        <div class="flex gap-2 items-center flex-wrap">
+            <button id="dataset-indicator" onclick="maybeRevertDataset()" class="ds-note transition-opacity hover:opacity-80 cursor-pointer" title="Click to revert to default dataset">
+                <i class="fa-solid fa-database"></i> Default Data
+            </button>
+            <select id="filter-exp" onchange="loadDashboard()"
+                class="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm rounded-lg px-3 py-1.5 focus:border-accent-purple focus:outline-none">
+                <option value="All">All Experience Levels</option>
+            </select>
+            <select id="filter-size" onchange="loadDashboard()"
+                class="hidden sm:block bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm rounded-lg px-3 py-1.5 focus:border-accent-pink focus:outline-none">
+                <option value="All">All Company Sizes</option>
+            </select>
+            <button id="curr-toggle" onclick="toggleCurrency()" class="curr-btn usd">
+                <i class="fa-solid fa-dollar-sign"></i>
+                <span id="curr-label">USD</span>
+            </button>
+            <button onclick="loadDashboard()"
+                class="bg-gradient-to-r from-accent-purple to-accent-pink text-white text-sm font-bold px-4 py-1.5 rounded-lg hover:opacity-90 transition-opacity flex items-center gap-2">
+                <i class="fa-solid fa-rotate"></i> Refresh
+            </button>
+        </div>
+    </header>
+
+    <!-- Scrollable Content -->
+    <div class="flex-1 overflow-y-auto p-4 md:p-6 relative" id="content-area">
+
+        <!-- Loader -->
+        <div id="loader" style="display:none" class="absolute inset-0 bg-white/80 dark:bg-darkbg/80 z-50 flex items-center justify-center">
+            <div class="text-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent-purple mx-auto mb-3"></div>
+                <p class="text-sm text-slate-400 font-medium">Loading market data…</p>
+            </div>
+        </div>
+
+        <!-- ══════════ DASHBOARD ══════════ -->
+        <div id="view-dashboard" class="block fadein space-y-5">
+
+            <!-- KPI Cards -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="glass-panel rounded-xl p-5 stat-card border-l-4 border-l-accent-purple">
+                    <div class="text-[11px] font-bold uppercase tracking-wider mb-1 text-slate-500 dark:text-slate-400">Total Postings</div>
+                    <div class="text-3xl font-black text-gradient" id="kpi-total">--</div>
+                </div>
+                <div class="glass-panel rounded-xl p-5 stat-card border-l-4 border-l-accent-teal">
+                    <div class="text-[11px] font-bold uppercase tracking-wider mb-1 text-slate-500 dark:text-slate-400">Market Avg Salary</div>
+                    <div class="text-2xl font-black text-accent-teal" id="kpi-avg">--</div>
+                </div>
+                <div class="glass-panel rounded-xl p-5 stat-card border-l-4 border-l-accent-orange">
+                    <div class="text-[11px] font-bold uppercase tracking-wider mb-1 text-slate-500 dark:text-slate-400">Highest Salary</div>
+                    <div class="text-2xl font-black text-accent-orange" id="kpi-max">--</div>
+                </div>
+                <div class="glass-panel rounded-xl p-5 stat-card border-l-4 border-l-accent-pink">
+                    <div class="text-[11px] font-bold uppercase tracking-wider mb-1 text-slate-500 dark:text-slate-400">Unique Job Roles</div>
+                    <div class="text-3xl font-black text-accent-pink" id="kpi-roles">--</div>
+                    <div class="text-[10px] text-slate-400 mt-0.5">DS / ML / Analytics only</div>
+                </div>
+            </div>
+
+            <!-- Top Roles by Market Demand -->
+            <div class="glass-panel rounded-xl p-5 border-t-4 border-accent-yellow shadow-lg shadow-yellow-500/5">
+                <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                    <h3 class="text-sm font-bold flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-accent-yellow inline-block"></span>
+                        Top Roles by Market Demand
+                    </h3>
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <span class="text-xs text-slate-400 font-bold">Show:</span>
+                        <button class="rl-btn" data-limit="5"  onclick="setRolesLimit(5)">Top 5</button>
+                        <button class="rl-btn active" data-limit="10" onclick="setRolesLimit(10)">Top 10</button>
+                        <button class="rl-btn" data-limit="15" onclick="setRolesLimit(15)">Top 15</button>
+                        <button class="rl-btn" data-limit="20" onclick="setRolesLimit(20)">Top 20</button>
+                        <button class="rl-btn" data-limit="50" onclick="setRolesLimit(50)">All</button>
+                        <span class="text-slate-300 dark:text-slate-600 mx-0.5">|</span>
+                        <span class="text-xs text-slate-400 font-bold">View:</span>
+                        <button class="ct-btn active" data-chart="chart-top-roles" data-type="bar-h" onclick="setChartType('chart-top-roles','bar-h')">H.Bar</button>
+                        <button class="ct-btn" data-chart="chart-top-roles" data-type="bar" onclick="setChartType('chart-top-roles','bar')">V.Bar</button>
+                    </div>
+                </div>
+                <div class="h-[320px]"><canvas id="chart-top-roles"></canvas></div>
+                <div class="insight-box mt-3"><div class="flex gap-2 items-start">
+                    <div class="insight-avatar"><i class="fa-solid fa-robot text-white text-[11px]"></i></div>
+                    <div class="flex-1">
+                        <div class="text-[10px] font-bold text-accent-purple uppercase tracking-wider mb-0.5">Data Analyst</div>
+                        <span id="insight-top-roles">Loading insights…</span>
+                    </div>
+                </div></div>
+            </div>
+
+            <!-- Row 1: Avg Salary by Role + Remote Work -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                <div class="glass-panel rounded-xl p-5 lg:col-span-2 border-t-4 border-accent-purple shadow-lg shadow-purple-500/5">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                        <h3 class="text-sm font-bold flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-accent-purple inline-block"></span>
+                            Top 7 Roles by Average Salary
+                        </h3>
+                        <div class="flex gap-1">
+                            <button class="ct-btn active" data-chart="chart-roles" data-type="bar" onclick="setChartType('chart-roles','bar')">Bar</button>
+                            <button class="ct-btn" data-chart="chart-roles" data-type="bar-h" onclick="setChartType('chart-roles','bar-h')">H.Bar</button>
+                            <button class="ct-btn" data-chart="chart-roles" data-type="line" onclick="setChartType('chart-roles','line')">Line</button>
+                        </div>
+                    </div>
+                    <div class="h-[260px]"><canvas id="chart-roles"></canvas></div>
+                    <div class="insight-box mt-3"><div class="flex gap-2 items-start">
+                        <div class="insight-avatar"><i class="fa-solid fa-robot text-white text-[11px]"></i></div>
+                        <div class="flex-1">
+                            <div class="text-[10px] font-bold text-accent-purple uppercase tracking-wider mb-0.5">Data Analyst</div>
+                            <span id="insight-roles">Loading insights…</span>
+                        </div>
+                    </div></div>
+                </div>
+                <div class="glass-panel rounded-xl p-5 border-t-4 border-accent-teal shadow-lg shadow-teal-500/5">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                        <h3 class="text-sm font-bold flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-accent-teal inline-block"></span>
+                            Remote Work Adoption
+                        </h3>
+                        <div class="flex gap-1">
+                            <button class="ct-btn active" data-chart="chart-remote" data-type="doughnut" onclick="setChartType('chart-remote','doughnut')">Ring</button>
+                            <button class="ct-btn" data-chart="chart-remote" data-type="pie" onclick="setChartType('chart-remote','pie')">Pie</button>
+                            <button class="ct-btn" data-chart="chart-remote" data-type="bar" onclick="setChartType('chart-remote','bar')">Bar</button>
+                        </div>
+                    </div>
+                    <div class="h-[260px] flex justify-center"><canvas id="chart-remote"></canvas></div>
+                    <div class="insight-box mt-3"><div class="flex gap-2 items-start">
+                        <div class="insight-avatar"><i class="fa-solid fa-robot text-white text-[11px]"></i></div>
+                        <div class="flex-1">
+                            <div class="text-[10px] font-bold text-accent-purple uppercase tracking-wider mb-0.5">Data Analyst</div>
+                            <span id="insight-remote">Loading insights…</span>
+                        </div>
+                    </div></div>
+                </div>
+            </div>
+
+            <!-- Row 2: Postings by Exp + Year Trend -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                <div class="glass-panel rounded-xl p-5 lg:col-span-1 border-t-4 border-accent-orange shadow-lg shadow-orange-500/5">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                        <h3 class="text-sm font-bold flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-accent-orange inline-block"></span>
+                            Postings by Experience
+                        </h3>
+                        <div class="flex gap-1">
+                            <button class="ct-btn active" data-chart="chart-vol" data-type="bar" onclick="setChartType('chart-vol','bar')">Bar</button>
+                            <button class="ct-btn" data-chart="chart-vol" data-type="doughnut" onclick="setChartType('chart-vol','doughnut')">Ring</button>
+                            <button class="ct-btn" data-chart="chart-vol" data-type="pie" onclick="setChartType('chart-vol','pie')">Pie</button>
+                        </div>
+                    </div>
+                    <div class="h-[230px]"><canvas id="chart-vol"></canvas></div>
+                    <div class="insight-box mt-3"><div class="flex gap-2 items-start">
+                        <div class="insight-avatar"><i class="fa-solid fa-robot text-white text-[11px]"></i></div>
+                        <div class="flex-1">
+                            <div class="text-[10px] font-bold text-accent-purple uppercase tracking-wider mb-0.5">Data Analyst</div>
+                            <span id="insight-vol">Loading insights…</span>
+                        </div>
+                    </div></div>
+                </div>
+                <div class="glass-panel rounded-xl p-5 lg:col-span-2 border-t-4 border-accent-blue shadow-lg shadow-blue-500/5">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                        <h3 class="text-sm font-bold flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-accent-blue inline-block"></span>
+                            Global Salary Trend (2020–2023)
+                        </h3>
+                        <div class="flex gap-1">
+                            <button class="ct-btn active" data-chart="chart-year" data-type="area" onclick="setChartType('chart-year','area')">Area</button>
+                            <button class="ct-btn" data-chart="chart-year" data-type="line" onclick="setChartType('chart-year','line')">Line</button>
+                            <button class="ct-btn" data-chart="chart-year" data-type="bar" onclick="setChartType('chart-year','bar')">Bar</button>
+                        </div>
+                    </div>
+                    <div class="h-[230px]"><canvas id="chart-year"></canvas></div>
+                    <div class="insight-box mt-3"><div class="flex gap-2 items-start">
+                        <div class="insight-avatar"><i class="fa-solid fa-robot text-white text-[11px]"></i></div>
+                        <div class="flex-1">
+                            <div class="text-[10px] font-bold text-accent-purple uppercase tracking-wider mb-0.5">Data Analyst</div>
+                            <span id="insight-year">Loading insights…</span>
+                        </div>
+                    </div></div>
+                </div>
+            </div>
+
+            <!-- Row 3: Exp Salary + Locations -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 pb-4">
+                <div class="glass-panel rounded-xl p-5 border-t-4 border-accent-pink shadow-lg shadow-pink-500/5">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                        <h3 class="text-sm font-bold flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-accent-pink inline-block"></span>
+                            Salary Progression by Experience
+                        </h3>
+                        <div class="flex gap-1">
+                            <button class="ct-btn active" data-chart="chart-exp" data-type="bar" onclick="setChartType('chart-exp','bar')">Bar</button>
+                            <button class="ct-btn" data-chart="chart-exp" data-type="bar-h" onclick="setChartType('chart-exp','bar-h')">H.Bar</button>
+                            <button class="ct-btn" data-chart="chart-exp" data-type="line" onclick="setChartType('chart-exp','line')">Line</button>
+                        </div>
+                    </div>
+                    <div class="h-[230px]"><canvas id="chart-exp"></canvas></div>
+                    <div class="insight-box mt-3"><div class="flex gap-2 items-start">
+                        <div class="insight-avatar"><i class="fa-solid fa-robot text-white text-[11px]"></i></div>
+                        <div class="flex-1">
+                            <div class="text-[10px] font-bold text-accent-purple uppercase tracking-wider mb-0.5">Data Analyst</div>
+                            <span id="insight-exp">Loading insights…</span>
+                        </div>
+                    </div></div>
+                </div>
+                <div class="glass-panel rounded-xl p-5 border-t-4 border-accent-green shadow-lg shadow-green-500/5">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                        <h3 class="text-sm font-bold flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-accent-green inline-block"></span>
+                            Top 5 Hiring Locations
+                        </h3>
+                        <div class="flex gap-1">
+                            <button class="ct-btn active" data-chart="chart-loc" data-type="bar-h" onclick="setChartType('chart-loc','bar-h')">H.Bar</button>
+                            <button class="ct-btn" data-chart="chart-loc" data-type="bar" onclick="setChartType('chart-loc','bar')">Bar</button>
+                            <button class="ct-btn" data-chart="chart-loc" data-type="pie" onclick="setChartType('chart-loc','pie')">Pie</button>
+                        </div>
+                    </div>
+                    <div class="h-[230px]"><canvas id="chart-loc"></canvas></div>
+                    <div class="insight-box mt-3"><div class="flex gap-2 items-start">
+                        <div class="insight-avatar"><i class="fa-solid fa-robot text-white text-[11px]"></i></div>
+                        <div class="flex-1">
+                            <div class="text-[10px] font-bold text-accent-purple uppercase tracking-wider mb-0.5">Data Analyst</div>
+                            <span id="insight-loc">Loading insights…</span>
+                        </div>
+                    </div></div>
+                </div>
+            </div>
+        </div><!-- /view-dashboard -->
+
+        <!-- ══════════ DATA EXPLORER ══════════ -->
+        <div id="view-explorer" class="hidden fadein space-y-5">
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                <!-- Filter Panel -->
+                <div class="glass-panel rounded-xl p-5 lg:col-span-1 border-t-4 border-accent-teal shadow-lg shadow-teal-500/5">
+                    <h3 class="text-base font-bold mb-4 text-accent-teal flex items-center gap-2">
+                        <i class="fa-solid fa-sliders"></i> Explorer Filters
+                    </h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wider">Year</label>
+                            <select id="exp-year" class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 text-sm focus:outline-none focus:border-accent-teal">
+                                <option value="All">All Years</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wider">Country</label>
+                            <select id="exp-country" class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 text-sm focus:outline-none focus:border-accent-teal">
+                                <option value="All">All Countries</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wider">Job Role</label>
+                            <select id="exp-role" class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 text-sm focus:outline-none focus:border-accent-teal">
+                                <option value="All">All Roles</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1 uppercase tracking-wider">Min Salary (USD)</label>
+                            <input id="exp-min-sal" type="number" placeholder="e.g. 80000" step="5000"
+                                class="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg p-2.5 text-sm focus:outline-none focus:border-accent-teal">
+                        </div>
+                        <button onclick="loadExplorerData()"
+                            class="w-full bg-gradient-to-r from-accent-teal to-accent-cyan hover:opacity-90 text-white font-bold py-2.5 rounded-lg transition-all flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-magnifying-glass"></i> Search &amp; Filter
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Country Avg Salary Chart -->
+                <div class="glass-panel rounded-xl p-5 lg:col-span-2 border-t-4 border-accent-blue shadow-lg shadow-blue-500/5">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                        <h3 class="text-base font-bold text-accent-blue flex items-center gap-2">
+                            <i class="fa-solid fa-globe"></i> Avg Salary by Country
+                        </h3>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <label class="text-xs text-slate-400 font-bold">Show:</label>
+                            <select id="country-limit" onchange="refreshCountryChart()"
+                                class="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-accent-blue">
+                                <option value="5">Top 5</option>
+                                <option value="10" selected>Top 10</option>
+                                <option value="15">Top 15</option>
+                                <option value="20">Top 20</option>
+                                <option value="30">Top 30</option>
+                                <option value="0">All</option>
+                            </select>
+                            <div class="flex gap-1">
+                                <button class="ct-btn active" data-chart="chart-country-avg" data-type="bar" onclick="setChartType('chart-country-avg','bar')">Bar</button>
+                                <button class="ct-btn" data-chart="chart-country-avg" data-type="bar-h" onclick="setChartType('chart-country-avg','bar-h')">H.Bar</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="h-[210px]"><canvas id="chart-country-avg"></canvas></div>
+                    <div class="insight-box mt-3"><div class="flex gap-2 items-start">
+                        <div class="insight-avatar"><i class="fa-solid fa-robot text-white text-[11px]"></i></div>
+                        <div class="flex-1">
+                            <div class="text-[10px] font-bold text-accent-purple uppercase tracking-wider mb-0.5">Data Analyst</div>
+                            <span id="insight-country">Apply filters or change top-N to see country salary insights…</span>
+                        </div>
+                    </div></div>
+                </div>
+            </div>
+
+            <!-- Filtered Data Visualization (shown after search) -->
+            <div id="explorer-charts" class="hidden glass-panel rounded-xl p-5 border-t-4 border-accent-indigo shadow-lg shadow-indigo-500/5">
+                <h3 class="text-sm font-bold mb-4 flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-accent-indigo inline-block"></span>
+                    Filtered Data Quick Analysis
+                </h3>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                    <div>
+                        <p class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Top Roles in Results</p>
+                        <div class="h-[190px]"><canvas id="chart-flt-roles"></canvas></div>
+                    </div>
+                    <div>
+                        <p class="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Avg Salary by Experience in Results</p>
+                        <div class="h-[190px]"><canvas id="chart-flt-exp"></canvas></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Table -->
+            <div class="glass-panel rounded-xl p-5 pb-4 border-t-4 border-slate-400 shadow-lg">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-bold">Raw Job Data</h2>
+                    <span id="row-count" class="text-xs text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-800 px-3 py-1 rounded-full font-semibold">-- records</span>
+                </div>
+                <div class="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-700/50">
+                    <table class="w-full text-left text-sm whitespace-nowrap">
+                        <thead class="bg-slate-100 dark:bg-slate-800/80">
+                            <tr>
+                                <th class="px-4 py-3 font-bold">Year</th>
+                                <th class="px-4 py-3 font-bold">Job Title</th>
+                                <th class="px-4 py-3 font-bold">Experience</th>
+                                <th class="px-4 py-3 font-bold">Type</th>
+                                <th class="px-4 py-3 font-bold">Salary (USD)</th>
+                                <th class="px-4 py-3 font-bold">Equiv. (INR ~)</th>
+                                <th class="px-4 py-3 font-bold">Location</th>
+                                <th class="px-4 py-3 font-bold">Remote</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body" class="divide-y divide-slate-200 dark:divide-slate-700/50">
+                            <tr>
+                                <td colspan="8" class="text-center py-12 text-slate-400 dark:text-slate-500">
+                                    <i class="fa-solid fa-table text-4xl mb-3 block opacity-20"></i>
+                                    Use the filters above and click <b>Search &amp; Filter</b>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div><!-- /view-explorer -->
+
+        <!-- ══════════ CALCULATOR ══════════ -->
+        <div id="view-calculator" class="hidden fadein">
+            <div class="max-w-2xl mx-auto glass-panel rounded-xl p-8 border-t-4 border-accent-orange shadow-xl shadow-orange-500/10">
+                <div class="text-center mb-7">
+                    <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-accent-orange to-red-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-orange-500/30">
+                        <i class="fa-solid fa-scale-balanced text-white text-2xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-black mb-1">Am I Underpaid?</h2>
+                    <p class="text-slate-500 dark:text-slate-400 text-sm">Compare your salary against real DS / ML market data.</p>
+                    <div class="ds-note mt-3 mx-auto max-w-sm justify-center">
+                        <i class="fa-solid fa-circle-info flex-shrink-0"></i>
+                        <span>This tool covers DS / ML / Analytics roles only (not SWE, DevOps, etc.)</span>
+                    </div>
+                </div>
+
+                <form id="calc-form" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold mb-1.5 uppercase tracking-wider">Job Role</label>
+                            <input type="text" id="calc-role" list="calc-role-list" required placeholder="e.g. Data Scientist"
+                                class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg p-3 text-sm focus:outline-none focus:border-accent-orange">
+                            <datalist id="calc-role-list"></datalist>
+                            <p class="text-xs text-slate-400 mt-1">Type to see role suggestions ↑</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold mb-1.5 uppercase tracking-wider">Experience Level</label>
+                            <select id="calc-exp"
+                                class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg p-3 text-sm focus:outline-none focus:border-accent-orange">
+                                <option value="Entry Level">Entry Level</option>
+                                <option value="Mid Level">Mid Level</option>
+                                <option value="Senior Level">Senior Level</option>
+                                <option value="Executive Level">Executive Level</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold mb-1.5 uppercase tracking-wider">Current Annual Salary (USD)</label>
+                            <input type="number" id="calc-salary" required placeholder="85000"
+                                class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg p-3 text-sm focus:outline-none focus:border-accent-orange">
+                            <p class="text-xs text-slate-400 mt-1">Always enter in <b>USD</b> for accurate comparison</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold mb-1.5 uppercase tracking-wider">Compare Against Market</label>
+                            <select id="calc-country"
+                                class="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg p-3 text-sm focus:outline-none focus:border-accent-orange">
+                                <option value="All">Global Market (All Countries)</option>
+                            </select>
+                            <p class="text-xs text-slate-400 mt-1">Select India for India-specific comparison</p>
+                        </div>
+                    </div>
+                    <button type="submit"
+                        class="w-full bg-gradient-to-r from-accent-orange to-red-500 hover:opacity-90 text-white font-black py-3 rounded-lg shadow-lg shadow-orange-500/25 transition-all flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Analyze My Salary
+                    </button>
+                </form>
+                <div id="calc-result" class="mt-6 hidden"></div>
+            </div>
+        </div><!-- /view-calculator -->
+
+    </div><!-- /content-area -->
+</main>
+
+<!-- ══════════ DATASET UPLOAD MODAL ══════════ -->
+<div id="upload-modal" class="fixed inset-0 bg-black/60 z-50 hidden flex items-center justify-center backdrop-blur-sm p-4">
+    <div class="glass-panel w-full max-w-lg rounded-2xl p-6 shadow-2xl relative">
+        <button onclick="closeUploadModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+            <i class="fa-solid fa-xmark text-xl"></i>
+        </button>
+        <h2 class="text-xl font-bold mb-2 flex items-center gap-2">
+            <i class="fa-solid fa-file-csv text-accent-pink"></i> Upload Custom Dataset
+        </h2>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">
+            Upload your own CSV. If the columns don't perfectly match our format, you'll be able to map them below.
+        </p>
+
+        <form id="upload-form" class="space-y-4">
+            <div class="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-6 text-center hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-400 mb-2"></i>
+                <input type="file" id="csv-file" accept=".csv" required class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-accent-pink/10 file:text-accent-pink hover:file:bg-accent-pink/20 cursor-pointer">
+            </div>
+
+            <div id="mapping-section" class="hidden">
+                <h3 class="font-bold text-sm mb-3 text-accent-blue border-t border-slate-200 dark:border-slate-800 pt-4">Map Your Columns</h3>
+                <p class="text-xs text-slate-500 mb-3">Match your CSV columns to the required fields:</p>
+                <div class="space-y-2 max-h-[200px] overflow-y-auto pr-2" id="mapping-fields">
+                    <!-- Mapping fields injected here -->
+                </div>
+            </div>
+
+            <div class="flex gap-2 pt-2">
+                <button type="button" id="btn-parse" onclick="parseHeaders()"
+                    class="flex-1 bg-slate-200 dark:bg-slate-700 hover:opacity-90 text-slate-700 dark:text-slate-200 font-bold py-2.5 rounded-lg transition-all">
+                    1. Read Headers
+                </button>
+                <button type="submit" id="btn-upload" disabled
+                    class="flex-1 bg-gradient-to-r from-accent-pink to-accent-purple hover:opacity-90 text-white font-bold py-2.5 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                    2. Upload & Apply
+                </button>
+            </div>
+            <button type="button" onclick="resetDataset()" class="w-full text-xs text-slate-500 hover:text-red-500 underline mt-2 text-center block">
+                Revert to default dataset
+            </button>
+        </form>
+        <div id="upload-msg" class="mt-4 text-sm font-bold text-center hidden"></div>
+
+        <!-- AI Support Bot -->
+        <div id="ai-support-bot" class="mt-5 border border-accent-purple/30 bg-accent-purple/5 rounded-xl p-4 hidden">
+            <div class="flex gap-2 items-center mb-2">
+                <div class="w-6 h-6 rounded-full bg-gradient-to-tr from-accent-purple to-accent-pink flex items-center justify-center">
+                    <i class="fa-solid fa-robot text-white text-[10px]"></i>
+                </div>
+                <span class="font-bold text-accent-purple text-xs uppercase tracking-wider">Data Analyst AI Support</span>
+            </div>
+            <div id="ai-chat-history" class="space-y-2 max-h-[100px] overflow-y-auto text-xs text-slate-600 dark:text-slate-300 mb-3 pr-2">
+                <div><i>Hi! I noticed your upload failed. Ask me anything about dataset formatting!</i></div>
+            </div>
+            <div class="flex gap-2">
+                <input type="text" id="ai-bot-input" placeholder="e.g. Why did my upload fail?" class="flex-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-accent-purple">
+                <button type="button" onclick="askAIBot()" class="bg-accent-purple text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:opacity-90 transition-opacity">Ask</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+//  GLOBALS
+// ═══════════════════════════════════════════
+Chart.register(ChartDataLabels);
+Chart.defaults.set('plugins.datalabels', { display: false });
+
+let charts = {};
+let rolesLimit = 10;
+let currency = 'USD';
+const INR_RATE = 83.5;
+const chartData = {};   // stores last render data per chart key
+const chartCurrentType = {
+    'chart-top-roles':   'bar-h',
+    'chart-roles':       'bar',
+    'chart-remote':      'doughnut',
+    'chart-vol':         'bar',
+    'chart-year':        'area',
+    'chart-exp':         'bar',
+    'chart-loc':         'bar-h',
+    'chart-country-avg': 'bar',
+};
+
+const COLORS = [
+    '#a855f7','#14b8a6','#f97316','#3b82f6','#ec4899',
+    '#10b981','#eab308','#06b6d4','#6366f1','#ef4444',
+    '#84cc16','#f43f5e','#8b5cf6','#0ea5e9','#22c55e',
+    '#fb923c','#c084fc','#34d399','#60a5fa','#fbbf24',
+    '#a3e635','#38bdf8','#f472b6','#4ade80','#facc15'
+];
+
+const EXP_COLORS = {
+    'Entry Level':     '#3b82f6',
+    'Mid Level':       '#14b8a6',
+    'Senior Level':    '#a855f7',
+    'Executive Level': '#f97316'
+};
+
+const REMOTE_COLORS = ['#10b981','#f59e0b','#3b82f6'];
+
+// ═══════════════════════════════════════════
+//  CURRENCY
+// ═══════════════════════════════════════════
+function fc(v, short = false) {
+    if (currency === 'INR') {
+        const inr = Math.round(v * INR_RATE);
+        if (short) {
+            if (inr >= 10000000) return '₹' + (inr/10000000).toFixed(1) + 'Cr';
+            if (inr >= 100000)   return '₹' + (inr/100000).toFixed(1) + 'L';
+            return '₹' + inr.toLocaleString('en-IN');
+        }
+        return '₹' + inr.toLocaleString('en-IN');
+    }
+    if (short) {
+        if (v >= 1000000) return '$' + (v/1000000).toFixed(1) + 'M';
+        if (v >= 1000)    return '$' + Math.round(v/1000) + 'k';
+        return '$' + v;
+    }
+    return '$' + Number(v).toLocaleString();
+}
+
+function fmt(v) { return fc(v); }
+
+function toggleCurrency() {
+    currency = currency === 'USD' ? 'INR' : 'USD';
+    const btn = document.getElementById('curr-toggle');
+    const lbl = document.getElementById('curr-label');
+    lbl.textContent = currency;
+    if (currency === 'INR') {
+        btn.className = 'curr-btn inr';
+        btn.querySelector('i').className = 'fa-solid fa-indian-rupee-sign';
+    } else {
+        btn.className = 'curr-btn usd';
+        btn.querySelector('i').className = 'fa-solid fa-dollar-sign';
+    }
+    // Update KPI salary cards
+    if (chartData['kpi']) {
+        document.getElementById('kpi-avg').innerText = fc(chartData['kpi'].avg_salary);
+        document.getElementById('kpi-max').innerText = fc(chartData['kpi'].max_salary);
+    }
+    // Re-render all charts with new currency
+    reRenderAll();
+}
+
+function reRenderAll() {
+    if (chartData['top-roles'])   renderTopRoles(chartData['top-roles']);
+    if (chartData['roles'])       renderRoles(chartData['roles']);
+    if (chartData['remote'])      renderRemote(chartData['remote']);
+    if (chartData['vol'])         renderVol(chartData['vol']);
+    if (chartData['year'])        renderYear(chartData['year']);
+    if (chartData['exp'])         renderExp(chartData['exp']);
+    if (chartData['loc'])         renderLoc(chartData['loc']);
+    if (chartData['country-avg']) renderCountryAvg(chartData['country-avg']);
+}
+
+// ═══════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════
+function getGP() {
+    const exp  = document.getElementById('filter-exp').value;
+    const size = document.getElementById('filter-size').value;
+    return `?experience=${encodeURIComponent(exp)}&company_size=${encodeURIComponent(size)}`;
+}
+
+function showLoader(v) {
+    document.getElementById('loader').style.display = v ? 'flex' : 'none';
+}
+
+function setInsight(key, html) {
+    const el = document.getElementById('insight-' + key);
+    if (el) el.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════
+//  THEME
+// ═══════════════════════════════════════════
+function applyChartTheme(dark) {
+    Chart.defaults.color       = dark ? '#94a3b8' : '#475569';
+    Chart.defaults.borderColor = dark ? 'rgba(255,255,255,.06)' : 'rgba(0,0,0,.08)';
+}
+
+function toggleTheme() {
+    const dark = !document.documentElement.classList.contains('dark');
+    document.documentElement.classList.toggle('dark', dark);
+    document.getElementById('theme-icon').className =
+        dark ? 'fa-solid fa-moon text-yellow-400' : 'fa-solid fa-sun text-orange-500';
+    applyChartTheme(dark);
+    reRenderAll();
+}
+
+// ═══════════════════════════════════════════
+//  TAB SWITCHING
+// ═══════════════════════════════════════════
+function switchTab(id) {
+    ['dashboard','explorer','calculator'].forEach(t => {
+        document.getElementById('view-' + t).classList.add('hidden');
+        document.getElementById('btn-' + t).className =
+            'w-full flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800/40 text-slate-500 dark:text-slate-400 transition-all text-left font-semibold text-sm';
+    });
+    document.getElementById('view-' + id).classList.remove('hidden');
+    document.getElementById('btn-' + id).className =
+        'w-full flex items-center gap-3 px-4 py-2.5 rounded-lg bg-slate-100 dark:bg-slate-800/60 text-accent-purple border border-accent-purple/30 transition-all text-left font-semibold text-sm';
+    if (id === 'explorer') refreshCountryChart();
+}
+
+// ═══════════════════════════════════════════
+//  TOP ROLES LIMIT
+// ═══════════════════════════════════════════
+function setRolesLimit(limit) {
+    rolesLimit = limit;
+    document.querySelectorAll('.rl-btn').forEach(btn =>
+        btn.classList.toggle('active', +btn.dataset.limit === limit)
+    );
+    loadTopRoles();
+}
+
+// ═══════════════════════════════════════════
+//  CHART TYPE SWITCHING
+// ═══════════════════════════════════════════
+function setChartType(chartId, type) {
+    chartCurrentType[chartId] = type;
+    document.querySelectorAll(`.ct-btn[data-chart="${chartId}"]`).forEach(btn =>
+        btn.classList.toggle('active', btn.dataset.type === type)
+    );
+    // Map chartId → data key → renderer
+    const map = {
+        'chart-top-roles':   () => chartData['top-roles']   && renderTopRoles(chartData['top-roles']),
+        'chart-roles':       () => chartData['roles']       && renderRoles(chartData['roles']),
+        'chart-remote':      () => chartData['remote']      && renderRemote(chartData['remote']),
+        'chart-vol':         () => chartData['vol']         && renderVol(chartData['vol']),
+        'chart-year':        () => chartData['year']        && renderYear(chartData['year']),
+        'chart-exp':         () => chartData['exp']         && renderExp(chartData['exp']),
+        'chart-loc':         () => chartData['loc']         && renderLoc(chartData['loc']),
+        'chart-country-avg': () => chartData['country-avg'] && renderCountryAvg(chartData['country-avg']),
+    };
+    if (map[chartId]) map[chartId]();
+}
+
+// ═══════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════
+async function init() {
+    try {
+        const res  = await fetch('/api/filters');
+        const data = await res.json();
+        
+        const ind = document.getElementById('dataset-indicator');
+        if (data.is_custom) {
+            ind.innerHTML = '<i class="fa-solid fa-file-csv"></i> Custom Data';
+            ind.style.background = 'rgba(236,72,153,.1)';
+            ind.style.color = '#ec4899';
+            ind.style.borderColor = 'rgba(236,72,153,.2)';
+        } else {
+            ind.innerHTML = '<i class="fa-solid fa-database"></i> Default Data';
+            ind.style = '';
+        }
+        
+        if (!data.experience_levels) throw new Error('Empty filters');
+
+        const add = (selId, items) => {
+            const sel = document.getElementById(selId);
+            if (!sel) return;
+            items.forEach(v => { sel.innerHTML += `<option value="${v}">${v}</option>`; });
+        };
+        add('filter-exp',   data.experience_levels);
+        add('filter-size',  data.company_sizes);
+        add('exp-year',     data.years);
+        add('exp-country',  data.countries);
+        add('exp-role',     data.job_titles);
+        add('calc-country', data.countries);
+
+        // Calculator datalist for autocomplete
+        const dl = document.getElementById('calc-role-list');
+        if (dl) data.job_titles.forEach(t => { dl.innerHTML += `<option value="${t}">`; });
+
+    } catch (e) { console.error('Filter init failed:', e); }
+    loadDashboard();
+}
+
+// ═══════════════════════════════════════════
+//  CHART FACTORY
+// ═══════════════════════════════════════════
+function mkChart(id, rawType, data, opts) {
+    const canvas = document.getElementById(id);
+    if (!canvas) return;
+    if (charts[id]) charts[id].destroy();
+    const actualType = (rawType === 'bar-h' || rawType === 'bar') ? 'bar'
+                     : (rawType === 'area')                        ? 'line'
+                     : rawType;
+    charts[id] = new Chart(canvas.getContext('2d'), { type: actualType, data, options: opts || {} });
+    return charts[id];
+}
+
+// Datalabels config
+function dl(rawType, isCurr = false) {
+    const dark  = document.documentElement.classList.contains('dark');
+    const color = dark ? '#cbd5e1' : '#334155';
+    if (rawType === 'doughnut' || rawType === 'pie') {
+        return {
+            display: true,
+            color: '#fff',
+            font: { weight: '700', size: 11 },
+            formatter: (val, ctx) => {
+                const tot = ctx.dataset.data.reduce((a,b)=>a+b,0);
+                const p = Math.round(val/tot*100);
+                return p >= 5 ? p + '%' : '';
+            }
+        };
+    }
+    const isH = rawType === 'bar-h';
+    return {
+        display: true,
+        color,
+        font: { weight: '600', size: 10 },
+        anchor: 'end',
+        align: isH ? 'right' : 'top',
+        offset: isH ? 4 : 2,
+        clamp: true,
+        formatter: val => isCurr ? fc(val, true) : Number(val).toLocaleString(),
+    };
+}
+
+// ═══════════════════════════════════════════
+//  DASHBOARD LOAD (parallel)
+// ═══════════════════════════════════════════
+async function loadDashboard() {
+    showLoader(true);
+    try {
+        const gp = getGP();
+        const [dashRes, topRes] = await Promise.all([
+            fetch('/api/dashboard' + gp),
+            fetch(`/api/top_roles${gp}&limit=${rolesLimit}`)
+        ]);
+        const dash = await dashRes.json();
+        const top  = await topRes.json();
+        if (dash.error) throw new Error(dash.error);
+
+        chartData['kpi'] = dash.summary;
+        document.getElementById('kpi-total').innerText = dash.summary.total_jobs.toLocaleString();
+        document.getElementById('kpi-avg').innerText   = fc(dash.summary.avg_salary);
+        document.getElementById('kpi-max').innerText   = fc(dash.summary.max_salary);
+        document.getElementById('kpi-roles').innerText = dash.summary.unique_roles.toLocaleString();
+
+        renderTopRoles(top);
+        renderRoles(dash.roles_chart);
+        renderRemote(dash.remote_chart);
+        renderVol(dash.vol_chart);
+        renderYear(dash.year_chart);
+        renderExp(dash.exp_chart);
+        renderLoc(dash.loc_chart);
+    } catch(err) { console.error('Dashboard error:', err); }
+    showLoader(false);
+}
+
+async function loadTopRoles() {
+    try {
+        const data = await (await fetch(`/api/top_roles${getGP()}&limit=${rolesLimit}`)).json();
+        renderTopRoles(data);
+    } catch(e) { console.error(e); }
+}
+
+// ═══════════════════════════════════════════
+//  CHART RENDERERS
+// ═══════════════════════════════════════════
+
+function renderTopRoles(data) {
+    chartData['top-roles'] = data;
+    if (!data.labels || !data.labels.length) return;
+    const type = chartCurrentType['chart-top-roles'];
+    const isPie = type === 'pie' || type === 'doughnut';
+    const bg = COLORS.slice(0, data.labels.length);
+
+    mkChart('chart-top-roles', type, {
+        labels: data.labels,
+        datasets: [{
+            label: 'Job Postings',
+            data: data.counts,
+            backgroundColor: bg,
+            borderColor: bg.map(c => c + 'bb'),
+            borderWidth: isPie ? 2 : 0,
+            borderRadius: isPie ? 0 : 5,
+            hoverOffset: isPie ? 8 : 0,
+        }]
+    }, {
+        responsive: true, maintainAspectRatio: false,
+        indexAxis: type === 'bar-h' ? 'y' : 'x',
+        plugins: {
+            legend: { display: isPie, position: 'right' },
+            tooltip: { callbacks: { afterLabel: ctx => `  Avg Salary: ${fc(data.avg_salaries[ctx.dataIndex])}` } },
+            datalabels: dl(type, false),
+        },
+        scales: isPie ? {} : {
+            x: { grid: { display: type !== 'bar-h' } },
+            y: { grid: { display: type === 'bar-h' } }
+        }
+    });
+
+    const total = data.counts.reduce((a,b)=>a+b,0);
+    const pct   = Math.round(data.counts[0]/total*100);
+    setInsight('top-roles',
+        `<b style="color:#eab308">${data.labels[0]}</b> leads with <b>${data.counts[0].toLocaleString()}</b> postings ` +
+        `(${pct}% of shown roles). Top ${data.labels.length} roles total <b>${total.toLocaleString()}</b> listings. ` +
+        `Avg salary for the #1 role: <b>${fc(data.avg_salaries[0])}</b>. Hover any bar for salary details.`
+    );
+}
+
+function renderRoles(data) {
+    chartData['roles'] = data;
+    if (!data.labels) return;
+    const type = chartCurrentType['chart-roles'];
+    const isPie = type === 'pie' || type === 'doughnut';
+    const bg = COLORS.slice(0, data.labels.length);
+    const salUSD = data.salaries; // always USD from API
+
+    mkChart('chart-roles', type, {
+        labels: data.labels,
+        datasets: [{
+            label: 'Avg Salary',
+            data: salUSD,
+            backgroundColor: bg,
+            borderColor: bg.map(c => c + 'bb'),
+            borderWidth: isPie ? 2 : 0,
+            borderRadius: isPie ? 0 : 5,
+            fill: type === 'area',
+            tension: 0.4,
+            hoverOffset: isPie ? 8 : 0,
+        }]
+    }, {
+        responsive: true, maintainAspectRatio: false,
+        indexAxis: type === 'bar-h' ? 'y' : 'x',
+        plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: ctx => ` ${fc(ctx.raw)}` } },
+            datalabels: dl(type, true),
+        },
+        scales: isPie ? {} : {
+            y: { ticks: { callback: v => fc(v, true) } },
+            x: { ticks: { maxRotation: 18, font: { size: 10 } } }
+        }
+    });
+
+    if (data.labels.length > 0) {
+        const avg = Math.round(salUSD.reduce((a,b)=>a+b,0)/salUSD.length);
+        const pct = Math.abs(Math.round((salUSD[0]/avg - 1) * 100));
+        const dir = salUSD[0] > avg ? 'above' : 'below';
+        setInsight('roles',
+            `<b style="color:#a855f7">${data.labels[0]}</b> commands <b>${fc(salUSD[0])}</b> avg — ` +
+            `<b>${pct}%</b> ${dir} the top-7 average of <b>${fc(avg)}</b>. ` +
+            `Roles ranked by hiring volume; high demand does not always equal highest pay.`
+        );
+    }
+}
+
+function renderRemote(data) {
+    chartData['remote'] = data;
+    if (!data.labels) return;
+    const type = chartCurrentType['chart-remote'];
+    const isPie = type === 'doughnut' || type === 'pie';
+
+    mkChart('chart-remote', type, {
+        labels: data.labels,
+        datasets: [{
+            data: data.counts,
+            backgroundColor: REMOTE_COLORS,
+            borderColor: REMOTE_COLORS.map(c=>c+'aa'),
+            borderWidth: isPie ? 2 : 0,
+            borderRadius: isPie ? 0 : 5,
+            hoverOffset: isPie ? 9 : 0,
+        }]
+    }, {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+            legend: { display: isPie || type === 'bar', position: isPie ? 'bottom' : 'top' },
+            datalabels: dl(type, false),
+        },
+        cutout: type === 'doughnut' ? '65%' : undefined,
+        scales: isPie ? {} : { x: { grid: { display: false } } }
+    });
+
+    const total = data.counts.reduce((a,b)=>a+b,0);
+    const ri = data.labels.indexOf('Remote');
+    const oi = data.labels.indexOf('On-site');
+    const rPct = ri>=0 ? Math.round(data.counts[ri]/total*100) : 0;
+    const oPct = oi>=0 ? Math.round(data.counts[oi]/total*100) : 0;
+    setInsight('remote',
+        `<b style="color:#10b981">${rPct}%</b> of positions are <b>fully remote</b> and ` +
+        `<b>${oPct}%</b> are on-site. Remote-first is now mainstream in DS/ML globally — ` +
+        `a trend that accelerated post-2020 and shows no sign of reversing.`
+    );
+}
+
+function renderVol(data) {
+    chartData['vol'] = data;
+    if (!data.labels) return;
+    const type = chartCurrentType['chart-vol'];
+    const isPie = type === 'pie' || type === 'doughnut';
+    const bg = data.labels.map(l => EXP_COLORS[l] || '#a855f7');
+
+    mkChart('chart-vol', type, {
+        labels: data.labels,
+        datasets: [{
+            label: 'Postings',
+            data: data.counts,
+            backgroundColor: bg,
+            borderColor: bg.map(c=>c+'bb'),
+            borderWidth: isPie ? 2 : 0,
+            borderRadius: isPie ? 0 : 5,
+            hoverOffset: isPie ? 8 : 0,
+        }]
+    }, {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: isPie }, datalabels: dl(type, false) },
+        cutout: type === 'doughnut' ? '65%' : undefined,
+        scales: isPie ? {} : { x: { grid: { display: false } } }
+    });
+
+    if (data.labels.length > 0) {
+        const total = data.counts.reduce((a,b)=>a+b,0);
+        const pct   = Math.round(data.counts[0]/total*100);
+        setInsight('vol',
+            `<b style="color:#f97316">${data.labels[0]}</b> accounts for <b>${pct}%</b> of all ` +
+            `${total.toLocaleString()} postings — this is where the market's hiring energy is concentrated. ` +
+            `Junior roles are comparatively scarce, making senior expertise especially valuable.`
+        );
+    }
+}
+
+function renderYear(data) {
+    chartData['year'] = data;
+    if (!data.labels) return;
+    const type = chartCurrentType['chart-year'];
+    const isBar = type === 'bar';
+
+    mkChart('chart-year', type, {
+        labels: data.labels,
+        datasets: [{
+            label: 'Avg Salary',
+            data: data.salaries,
+            borderColor: '#3b82f6',
+            backgroundColor: isBar
+                ? COLORS.slice(0, data.labels.length)
+                : 'rgba(59,130,246,.18)',
+            fill: !isBar,
+            tension: 0.42,
+            borderWidth: isBar ? 0 : 3,
+            pointBackgroundColor: '#3b82f6',
+            pointRadius: isBar ? 0 : 5,
+            borderRadius: isBar ? 5 : 0,
+        }]
+    }, {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: ctx => ` ${fc(ctx.raw)}` } },
+            datalabels: dl(type, true),
+        },
+        scales: {
+            y: { ticks: { callback: v => fc(v, true) } },
+            x: { grid: { display: false } }
+        }
+    });
+
+    if (data.labels.length >= 2) {
+        const first = data.salaries[0], last = data.salaries[data.salaries.length-1];
+        const growth = Math.round((last/first-1)*100);
+        const dir = growth >= 0 ? 'grown' : 'declined';
+        setInsight('year',
+            `Avg salaries <b style="color:#3b82f6">${dir} by ${Math.abs(growth)}%</b> from ` +
+            `<b>${data.labels[0]}</b> (${fc(first)}) to <b>${data.labels[data.labels.length-1]}</b> (${fc(last)}). ` +
+            `${growth > 5
+                ? 'This sharp rise reflects the surge in AI/ML demand rapidly driving compensation upward.'
+                : 'The market is stabilizing after the post-pandemic tech hiring boom.'
+            }`
+        );
+    }
+}
+
+function renderExp(data) {
+    chartData['exp'] = data;
+    if (!data.labels) return;
+    const type = chartCurrentType['chart-exp'];
+    const isPie = type === 'pie' || type === 'doughnut';
+    const bg = data.labels.map(l => EXP_COLORS[l] || '#a855f7');
+
+    mkChart('chart-exp', type, {
+        labels: data.labels,
+        datasets: [{
+            label: 'Avg Salary',
+            data: data.salaries,
+            backgroundColor: bg,
+            borderColor: bg.map(c=>c+'bb'),
+            borderWidth: isPie ? 2 : 0,
+            borderRadius: isPie ? 0 : 7,
+            fill: type === 'line',
+            tension: 0.4,
+            hoverOffset: isPie ? 8 : 0,
+        }]
+    }, {
+        responsive: true, maintainAspectRatio: false,
+        indexAxis: type === 'bar-h' ? 'y' : 'x',
+        plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: ctx => ` ${fc(ctx.raw)}` } },
+            datalabels: dl(type, true),
+        },
+        scales: isPie ? {} : {
+            y: { ticks: { callback: v => fc(v, true) } },
+            x: { grid: { display: false } }
+        }
+    });
+
+    if (data.labels.length >= 2) {
+        const first = data.salaries[0], last = data.salaries[data.salaries.length-1];
+        const growth = Math.round((last/first-1)*100);
+        setInsight('exp',
+            `Salary jumps <b style="color:#ec4899">~${growth}%</b> from <b>${data.labels[0]}</b> ` +
+            `(${fc(first)}) to <b>${data.labels[data.labels.length-1]}</b> (${fc(last)}). ` +
+            `Each seniority level unlocks a significant pay step-up — negotiating your level is the highest-leverage salary move.`
+        );
+    }
+}
+
+function renderLoc(data) {
+    chartData['loc'] = data;
+    if (!data.labels) return;
+    const type = chartCurrentType['chart-loc'];
+    const isPie = type === 'pie' || type === 'doughnut';
+    const locColors = ['#a855f7','#14b8a6','#f97316','#3b82f6','#ec4899'];
+
+    mkChart('chart-loc', type, {
+        labels: data.labels,
+        datasets: [{
+            label: 'Job Count',
+            data: data.counts,
+            backgroundColor: locColors,
+            borderColor: locColors.map(c=>c+'bb'),
+            borderWidth: isPie ? 2 : 0,
+            borderRadius: isPie ? 0 : 4,
+            hoverOffset: isPie ? 8 : 0,
+        }]
+    }, {
+        responsive: true, maintainAspectRatio: false,
+        indexAxis: type === 'bar-h' ? 'y' : 'x',
+        plugins: {
+            legend: { display: isPie, position: 'right' },
+            datalabels: dl(type, false),
+        },
+        scales: isPie ? {} : { x: { grid: { display: false } } }
+    });
+
+    if (data.labels.length > 0) {
+        const total = data.counts.reduce((a,b)=>a+b,0);
+        const pct = Math.round(data.counts[0]/total*100);
+        setInsight('loc',
+            `<b style="color:#10b981">${data.labels[0]}</b> dominates with ` +
+            `<b>${data.counts[0].toLocaleString()}</b> postings (~${pct}% of top-5). ` +
+            `This concentration reflects mature data ecosystems with established tech firms and startup hubs.`
+        );
+    }
+}
+
+function renderCountryAvg(data) {
+    chartData['country-avg'] = data;
+    if (!data.labels || !data.labels.length) return;
+    const type = chartCurrentType['chart-country-avg'];
+    const bg = COLORS.slice(0, data.labels.length);
+
+    mkChart('chart-country-avg', type, {
+        labels: data.labels,
+        datasets: [{
+            label: 'Avg Salary',
+            data: data.salaries,
+            backgroundColor: bg,
+            borderColor: bg.map(c=>c+'bb'),
+            borderWidth: 0, borderRadius: 4,
+        }]
+    }, {
+        responsive: true, maintainAspectRatio: false,
+        indexAxis: type === 'bar-h' ? 'y' : 'x',
+        plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: ctx => ` ${fc(ctx.raw)}` } },
+            datalabels: dl(type, true),
+        },
+        scales: { y: { ticks: { callback: v => fc(v, true) } } }
+    });
+
+    setInsight('country',
+        `<b style="color:#3b82f6">${data.labels[0]}</b> tops the salary chart at avg <b>${fc(data.salaries[0])}</b>. ` +
+        `Change the "Show" count above to compare more countries. ` +
+        `Only countries with 3+ data points are shown for statistical reliability.`
+    );
+}
+
+// ═══════════════════════════════════════════
+//  DATA EXPLORER
+// ═══════════════════════════════════════════
+async function refreshCountryChart() {
+    const yr    = document.getElementById('exp-year')?.value || 'All';
+    const limit = document.getElementById('country-limit')?.value || '10';
+    const gp    = getGP();
+    try {
+        const cData = await (await fetch(`/api/country_avg_salary${gp}&year=${encodeURIComponent(yr)}&limit=${limit}`)).json();
+        if (cData.labels && cData.labels.length) renderCountryAvg(cData);
+    } catch(e) { console.error(e); }
+}
+
+async function loadExplorerData() {
+    const tbody = document.getElementById('table-body');
+    tbody.innerHTML = `<tr><td colspan="8" class="text-center py-8 text-slate-400">
+        <div class="animate-spin rounded-full h-6 w-6 border-t-2 border-accent-teal mx-auto mb-2"></div>Loading data…
+    </td></tr>`;
+
+    const yr     = document.getElementById('exp-year').value;
+    const ctry   = document.getElementById('exp-country').value;
+    const role   = document.getElementById('exp-role').value;
+    const minSal = document.getElementById('exp-min-sal').value;
+    const limit  = document.getElementById('country-limit').value;
+    const gp     = getGP();
+
+    const tUrl = `/api/jobs_table${gp}&year=${encodeURIComponent(yr)}&country=${encodeURIComponent(ctry)}&role=${encodeURIComponent(role)}&min_sal=${minSal}`;
+    const cUrl = `/api/country_avg_salary${gp}&year=${encodeURIComponent(yr)}&limit=${limit}`;
+
+    try {
+        const [tRes, cRes] = await Promise.all([fetch(tUrl), fetch(cUrl)]);
+        const rows  = await tRes.json();
+        const cData = await cRes.json();
+
+        document.getElementById('row-count').textContent = `${rows.length.toLocaleString()} records`;
+        tbody.innerHTML = '';
+
+        if (rows.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8" class="text-center py-10 text-slate-500 dark:text-slate-400 font-bold">
+                <i class="fa-solid fa-circle-exclamation text-accent-orange mr-2"></i>No data matches these filters.
+            </td></tr>`;
+        } else {
+            const expBadge = {
+                'Entry Level':     'bg-blue-500/15 text-blue-600 dark:text-blue-300',
+                'Mid Level':       'bg-teal-500/15 text-teal-600 dark:text-teal-300',
+                'Senior Level':    'bg-purple-500/15 text-purple-600 dark:text-purple-300',
+                'Executive Level': 'bg-orange-500/15 text-orange-600 dark:text-orange-300'
+            };
+            rows.forEach(row => {
+                const rs = row.remote_status;
+                const rBadge = rs==='Remote' ? 'bg-green-500/15 text-green-600 dark:text-green-300'
+                             : rs==='Hybrid' ? 'bg-yellow-500/15 text-yellow-600 dark:text-yellow-300'
+                             : 'bg-slate-200/80 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400';
+                const eBadge = expBadge[row.experience_level] || 'bg-slate-200 dark:bg-slate-800 text-slate-500';
+                const inrVal = '₹' + Math.round(row.salary_in_usd * INR_RATE).toLocaleString('en-IN');
+                tbody.innerHTML += `
+                <tr class="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
+                    <td class="px-4 py-2.5 font-semibold text-slate-500 dark:text-slate-400">${row.work_year}</td>
+                    <td class="px-4 py-2.5 font-bold">${row.job_title}</td>
+                    <td class="px-4 py-2.5"><span class="px-2 py-0.5 rounded-full text-xs font-bold ${eBadge}">${row.experience_level}</span></td>
+                    <td class="px-4 py-2.5 text-slate-500 dark:text-slate-400">${row.employment_type}</td>
+                    <td class="px-4 py-2.5 font-bold text-accent-teal">$${row.salary_in_usd.toLocaleString()}</td>
+                    <td class="px-4 py-2.5 font-bold text-yellow-600 dark:text-yellow-400">${inrVal}</td>
+                    <td class="px-4 py-2.5">${row.company_location_full}</td>
+                    <td class="px-4 py-2.5"><span class="px-2 py-0.5 rounded-full text-xs font-bold ${rBadge}">${rs}</span></td>
+                </tr>`;
+            });
+            renderFilteredCharts(rows);
+        }
+
+        if (cData.labels && cData.labels.length) renderCountryAvg(cData);
+    } catch(e) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-6 text-red-500 font-bold">
+            <i class="fa-solid fa-circle-exclamation mr-2"></i>Error loading data.
+        </td></tr>`;
+        console.error(e);
+    }
+}
+
+function renderFilteredCharts(rows) {
+    if (!rows.length) return;
+    document.getElementById('explorer-charts').classList.remove('hidden');
+
+    // Role distribution from filtered rows (client-side)
+    const roleCounts = {};
+    rows.forEach(r => roleCounts[r.job_title] = (roleCounts[r.job_title]||0)+1);
+    const topRoles = Object.entries(roleCounts).sort((a,b)=>b[1]-a[1]).slice(0, 8);
+
+    if (charts['chart-flt-roles']) charts['chart-flt-roles'].destroy();
+    charts['chart-flt-roles'] = new Chart(
+        document.getElementById('chart-flt-roles').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: topRoles.map(([k])=>k),
+            datasets: [{
+                label: 'Postings', data: topRoles.map(([,v])=>v),
+                backgroundColor: COLORS.slice(0, topRoles.length),
+                borderRadius: 4, borderWidth: 0,
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                datalabels: {
+                    display: true, color: document.documentElement.classList.contains('dark') ? '#cbd5e1' : '#334155',
+                    font: { size: 10, weight: '600' }, anchor: 'end', align: 'top', clamp: true,
+                    formatter: v => v.toLocaleString()
+                }
+            },
+            scales: {
+                x: { ticks: { maxRotation: 30, font: { size: 9 } } },
+                y: { grid: { display: false } }
+            }
+        }
+    });
+
+    // Salary by experience from filtered rows
+    const expGroups = {};
+    rows.forEach(r => {
+        if (!expGroups[r.experience_level]) expGroups[r.experience_level] = [];
+        expGroups[r.experience_level].push(r.salary_in_usd);
+    });
+    const expOrder  = ['Entry Level','Mid Level','Senior Level','Executive Level'];
+    const expLabels = expOrder.filter(e => expGroups[e]);
+    const expAvgs   = expLabels.map(e => Math.round(expGroups[e].reduce((a,b)=>a+b,0)/expGroups[e].length));
+
+    if (charts['chart-flt-exp']) charts['chart-flt-exp'].destroy();
+    charts['chart-flt-exp'] = new Chart(
+        document.getElementById('chart-flt-exp').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: expLabels,
+            datasets: [{
+                label: 'Avg Salary', data: expAvgs,
+                backgroundColor: expLabels.map(l=>EXP_COLORS[l]||'#a855f7'),
+                borderRadius: 6, borderWidth: 0,
+            }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                datalabels: {
+                    display: true, color: document.documentElement.classList.contains('dark') ? '#cbd5e1' : '#334155',
+                    font: { size: 10, weight: '600' }, anchor: 'end', align: 'top', clamp: true,
+                    formatter: v => fc(v, true)
+                }
+            },
+            scales: {
+                y: { ticks: { callback: v => fc(v, true) } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+}
+
+// ═══════════════════════════════════════════
+//  SALARY CALCULATOR
+// ═══════════════════════════════════════════
+document.getElementById('calc-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const role    = document.getElementById('calc-role').value;
+    const exp     = document.getElementById('calc-exp').value;
+    const salary  = parseFloat(document.getElementById('calc-salary').value);
+    const country = document.getElementById('calc-country').value;
+    const box     = document.getElementById('calc-result');
+
+    box.classList.remove('hidden');
+    box.innerHTML = `<div class="text-slate-500 animate-pulse font-bold text-sm">
+        <i class="fa-solid fa-spinner fa-spin mr-2"></i>Analyzing market data…</div>`;
+
+    try {
+        let url = `/api/underpaid_calculator/${encodeURIComponent(role)}/${encodeURIComponent(exp)}/${salary}`;
+        if (country && country !== 'All') url += `?country=${encodeURIComponent(country)}`;
+
+        const data = await (await fetch(url)).json();
+
+        if (data.error || data.status === 'Unknown') {
+            box.innerHTML = `<div class="text-amber-500 font-semibold text-sm">
+                <i class="fa-solid fa-circle-exclamation mr-2"></i>${data.message||data.error}</div>`;
+            return;
+        }
+
+        const cfg = {
+            'Underpaid':   { icon:'fa-arrow-trend-down', c:'text-red-500',    bg:'from-red-500/10',    border:'border-red-500/20',    badge:'bg-red-500' },
+            'Fairly Paid': { icon:'fa-circle-check',     c:'text-teal-500',   bg:'from-teal-500/10',   border:'border-teal-500/20',   badge:'bg-teal-500' },
+            'Overpaid':    { icon:'fa-arrow-trend-up',   c:'text-purple-500', bg:'from-purple-500/10', border:'border-purple-500/20', badge:'bg-purple-500' }
+        }[data.status] || { icon:'fa-circle-check', c:'text-teal-500', bg:'from-teal-500/10', border:'border-teal-500/20', badge:'bg-teal-500' };
+
+        const ctxLabel  = data.country_context !== 'Global' ? `in ${data.country_context}` : 'globally';
+        const inrAvg    = Math.round(data.market_average * INR_RATE).toLocaleString('en-IN');
+        const inrDiff   = Math.round(data.difference * INR_RATE).toLocaleString('en-IN');
+        const inrSalary = Math.round(salary * INR_RATE).toLocaleString('en-IN');
+
+        box.innerHTML = `
+        <div class="bg-gradient-to-br ${cfg.bg} to-transparent border ${cfg.border} rounded-xl p-5">
+            <div class="flex items-center gap-3 mb-3">
+                <div class="text-4xl ${cfg.c}"><i class="fa-solid ${cfg.icon}"></i></div>
+                <div>
+                    <div class="text-2xl font-black ${cfg.c}">${data.status}</div>
+                    <div class="text-xs text-slate-500 dark:text-slate-400">${ctxLabel} · ${data.sample_count} data points</div>
+                </div>
+            </div>
+            <p class="text-sm font-semibold text-slate-600 dark:text-slate-300 mb-4">${data.message}</p>
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <div class="rounded-lg bg-white/50 dark:bg-slate-800/50 p-3 border border-slate-200 dark:border-slate-700">
+                    <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Your Salary</div>
+                    <div class="text-base font-black text-slate-700 dark:text-slate-200">$${Number(salary).toLocaleString()}</div>
+                    <div class="text-xs text-yellow-600 dark:text-yellow-400 font-semibold">≈ ₹${inrSalary}</div>
+                </div>
+                <div class="rounded-lg bg-white/50 dark:bg-slate-800/50 p-3 border border-slate-200 dark:border-slate-700">
+                    <div class="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Market Average</div>
+                    <div class="text-base font-black text-teal-600 dark:text-teal-400">$${data.market_average.toLocaleString()}</div>
+                    <div class="text-xs text-yellow-600 dark:text-yellow-400 font-semibold">≈ ₹${inrAvg}</div>
+                </div>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+                <span class="${cfg.badge} text-white text-xs font-bold px-3 py-1.5 rounded-full">
+                    Gap: $${data.difference.toLocaleString()} (≈ ₹${inrDiff})
+                </span>
+                ${data.country_context !== 'Global' ? `<span class="bg-blue-500 text-white text-xs font-bold px-3 py-1.5 rounded-full">${data.country_context} Market</span>` : ''}
+            </div>
+        </div>`;
+    } catch(err) {
+        box.innerHTML = `<div class="text-red-500 font-bold text-sm">
+            <i class="fa-solid fa-circle-exclamation mr-2"></i>Error processing request.</div>`;
+    }
+});
+
+// ═══════════════════════════════════════════
+//  DATASET UPLOAD
+// ═══════════════════════════════════════════
+const REQUIRED_COLS = [
+    {id: 'job_title', label: 'Job Title'},
+    {id: 'salary_in_usd', label: 'Salary (Numerical)'},
+    {id: 'experience_level', label: 'Experience Level'},
+    {id: 'company_location', label: 'Company Location / Country'},
+    {id: 'work_year', label: 'Work Year'},
+    {id: 'employment_type', label: 'Employment Type'},
+    {id: 'remote_ratio', label: 'Remote Status/Ratio'}
+];
+let csvHeaders = [];
+
+function openUploadModal() {
+    document.getElementById('upload-modal').classList.remove('hidden');
+    document.getElementById('upload-msg').classList.add('hidden');
+    document.getElementById('mapping-section').classList.add('hidden');
+    document.getElementById('ai-support-bot').classList.add('hidden');
+    document.getElementById('btn-upload').disabled = true;
+    document.getElementById('upload-form').reset();
+}
+
+function closeUploadModal() {
+    document.getElementById('upload-modal').classList.add('hidden');
+}
+
+function parseHeaders() {
+    const file = document.getElementById('csv-file').files[0];
+    if (!file) return alert("Please select a CSV file first.");
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const text = e.target.result;
+        const firstLine = text.split('\n')[0];
+        csvHeaders = firstLine.split(',').map(h => h.trim().replace(/"/g, ''));
+        
+        const mf = document.getElementById('mapping-fields');
+        mf.innerHTML = '';
+        REQUIRED_COLS.forEach(req => {
+            let options = `<option value="">-- Ignore / Not Present --</option>`;
+            csvHeaders.forEach(h => {
+                // Auto-guess
+                const match = h.toLowerCase().includes(req.label.split(' ')[0].toLowerCase());
+                options += `<option value="${h}" ${match ? 'selected' : ''}>${h}</option>`;
+            });
+            mf.innerHTML += `
+                <div class="flex items-center justify-between gap-3 text-xs">
+                    <span class="font-bold w-1/2 truncate" title="${req.label}">${req.label}</span>
+                    <i class="fa-solid fa-arrow-right text-slate-400"></i>
+                    <select id="map-${req.id}" class="w-1/2 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded p-1.5 focus:outline-none focus:border-accent-pink">
+                        ${options}
+                    </select>
+                </div>
+            `;
+        });
+        
+        document.getElementById('mapping-section').classList.remove('hidden');
+        document.getElementById('btn-upload').disabled = false;
+    };
+    reader.readAsText(file);
+}
+
+document.getElementById('upload-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const file = document.getElementById('csv-file').files[0];
+    if (!file) return;
+
+    const mapping = {};
+    REQUIRED_COLS.forEach(req => {
+        const val = document.getElementById(`map-${req.id}`)?.value;
+        if (val) mapping[req.id] = val;
+    });
+
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('mapping', JSON.stringify(mapping));
+
+    const msg = document.getElementById('upload-msg');
+    msg.classList.remove('hidden');
+    msg.className = 'mt-4 text-sm font-bold text-center animate-pulse text-accent-purple';
+    msg.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Uploading & parsing...';
+
+    try {
+        const res = await fetch('/api/upload_dataset', { method: 'POST', body: fd });
+        const data = await res.json();
+        
+        if (data.error) throw new Error(data.error);
+        
+        msg.className = 'mt-4 text-sm font-bold text-center text-green-500';
+        msg.innerHTML = `<i class="fa-solid fa-check-circle mr-1"></i> Success! ${data.message}`;
+        setTimeout(() => {
+            closeUploadModal();
+            init(); // Re-fetch all data and refresh dashboard
+        }, 1500);
+    } catch(err) {
+        msg.className = 'mt-4 text-sm font-bold text-center text-red-500';
+        msg.innerHTML = `<i class="fa-solid fa-circle-exclamation mr-1"></i> ${err.message}`;
+        document.getElementById('ai-support-bot').classList.remove('hidden');
+        addBotMessage("It looks like your upload failed. " + err.message);
+    }
+});
+
+function addBotMessage(text) {
+    const hist = document.getElementById('ai-chat-history');
+    hist.innerHTML += `<div class="mt-2 text-accent-purple"><b>AI:</b> ${text}</div>`;
+    hist.scrollTop = hist.scrollHeight;
+}
+
+function askAIBot() {
+    const input = document.getElementById('ai-bot-input');
+    const q = input.value.trim();
+    if(!q) return;
+    
+    const hist = document.getElementById('ai-chat-history');
+    hist.innerHTML += `<div class="mt-2 text-slate-500"><b>You:</b> ${q}</div>`;
+    input.value = '';
+    
+    setTimeout(() => {
+        let ans = "I'm not sure. Please make sure your CSV is valid.";
+        const lowerQ = q.toLowerCase();
+        
+        if (lowerQ.includes('fail') || lowerQ.includes('error')) {
+            ans = "Uploads usually fail if your CSV is missing a Salary column or Job Title column. Make sure you map them correctly above!";
+        } else if (lowerQ.includes('salary') || lowerQ.includes('usd')) {
+            ans = "Salary must be mapped to a numerical column representing annual salary in USD. Datasets without salaries cannot be processed.";
+        } else if (lowerQ.includes('empty') || lowerQ.includes('blank')) {
+            ans = "If your dashboard is empty, it means your mapped data types were invalid or the dataset was completely empty.";
+        } else if (lowerQ.includes('column') || lowerQ.includes('map')) {
+            ans = "You don't need to map every single column, but Job Title and Salary are strictly required for the dashboard to generate insights.";
+        }
+        
+        addBotMessage(ans);
+    }, 600);
+}
+
+function maybeRevertDataset() {
+    if (document.getElementById('dataset-indicator').innerText.includes('Custom Data')) {
+        if (confirm("Are you sure you want to revert to the default dataset?")) {
+            resetDataset();
+        }
+    } else {
+        alert("You are already using the default dataset! Click 'Custom Dataset' in the sidebar to upload your own.");
+    }
+}
+
+async function resetDataset() {
+    try {
+        await fetch('/api/reset_dataset', { method: 'POST' });
+        alert("Reverted to default dataset.");
+        closeUploadModal();
+        init();
+    } catch(e) { alert("Failed to reset dataset."); }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+    const dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.classList.toggle('dark', dark);
+    applyChartTheme(dark);
+    if (!dark) document.getElementById('theme-icon').className = 'fa-solid fa-sun text-orange-500';
+    init();
+});
+</script>
+</body>
+</html>
